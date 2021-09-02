@@ -1,0 +1,179 @@
+/*
+ * power.c
+ *
+ *  Created on: Aug 5, 2021
+ *      Author: vovav
+ */
+#include "main.h"
+#include "power.h"
+
+void PowerSM() {
+
+	if(SysCntrl.PowerTimer>0)
+		SysCntrl.PowerTimer--;
+	else
+		switch(SysCntrl.power_stage) {
+		// State: CPU is turned off & power is off
+		case 0:
+			SetI2C_Mask(SysCntrl.BootFlash?FLASH_EN_1:FLASH_EN_0);
+			if(SysCntrl.pgin && SysCntrl.PowerState){
+				SysCntrl.power_stage = 10;
+				SysCntrl.PowerTimer = 1000;
+			}
+		break;
+		// State: CPU is turned off & power is turning on STAGE 1
+		case 10:
+			SetI2C_Mask(TRST_N|EJ_TRST_N);
+			ClrI2C_Mask(RESET_N|CPU_RST_N);
+			SysCntrl.PowerTimer  = 20;
+			SysCntrl.power_stage = 20;
+		break;
+		// State: CPU is turned off & power is turning on STAGE 2
+		case 20:
+			SetI2C_Mask(ENA_LV_DCDC);
+			SysCntrl.PowerTimer  = 20;
+			SysCntrl.power_stage = 30;
+		break;
+		// State: CPU is turned off & power is turning on STAGE 3
+		case 30:
+			SetI2C_Mask(ENA_HV_DCDC);
+			// SUS_S3# set
+			SysCntrl.PowerTimer  = 100;
+			SysCntrl.power_stage = 40;
+		break;
+		// State: CPU is turned off & power is turning on STAGE 4
+		case 40:
+			SetI2C_Mask(CPU_RST_N);
+			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
+			SysCntrl.PowerTimer  = 1000;
+			SysCntrl.power_stage = 51;
+		break;
+		// State: CPU is on & power is on NORMAL STATE
+		case 51:
+			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
+			ClrI2C_Mask(CPU_RST_N);
+			SysCntrl.PowerTimer  = 10;
+			if(SysCntrl.rstbtn)
+				SysCntrl.power_stage = 41;
+			if(SysCntrl.pwrbtn){
+				SysCntrl.power_stage = 31;
+				SysCntrl.PowerState = 0;
+			}
+		break;
+		// State: CPU is on & requested soft reset
+		case 41:
+			SysCntrl.PowerTimer  = 5000;
+			SysCntrl.power_stage = 21;
+		break;
+		// initiating hard reset
+		case 21:
+			SetI2C_Mask(CPU_RST_N);
+			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
+			SysCntrl.PowerTimer  = 1;
+			SysCntrl.power_stage = 51;
+		break;
+
+		case 31:
+			ClrI2C_Mask(0b11111111);
+			SysCntrl.PowerTimer  = 1000;
+			SysCntrl.power_stage = 0;
+		break;
+
+		case 100:
+
+			break;
+		}
+}
+
+// 0b01101111
+// 0b01101111
+// PGIN  power good INVERTED on PCB and additionaly inverted here
+// RSTBTN reset btm from motherboard    (x16)
+// PWRBTN power button from motherboard (x15)
+// ALTBOOT watchdog                     (x14)
+// STMBOOTSEL ???                       (x19)
+
+uint8_t debouncer(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin){
+	uint8_t pinState;
+	uint8_t prevState;
+	uint8_t i,swtch = 1;
+	char buf[25] = {0};
+	pinState = HAL_GPIO_ReadPin(GPIOx,GPIO_Pin);
+	for(i=0;i<3 && swtch;i++){
+		prevState = pinState;
+		pinState = HAL_GPIO_ReadPin(GPIOx,GPIO_Pin);
+		if(prevState!=pinState)
+			swtch = 0;
+		else
+			HAL_Delay(2);
+	}
+
+	if(swtch)
+		return 0b10000000|((pinState)?1:0);
+
+}
+
+void checkPowerLevels(uint8_t output){
+	char buf[10] = {0};
+	uint8_t pinState;
+
+
+	pinState = HAL_GPIO_ReadPin(PGIN_PIN);
+
+	SysCntrl.pgin = (pinState)?0:1;
+	if(output){
+		sprintf(buf,"PGIN: %d\r\n",(pinState)?0:1);
+		UART_putstr(buf);
+	}
+
+	pinState = HAL_GPIO_ReadPin(PWRBTN_PIN);
+	if((pinState&0b00000001)!=SysCntrl.pwrbtn){
+		pinState = debouncer(PWRBTN_PIN);
+		if(pinState&0b10000000)
+			SysCntrl.pwrbtn = pinState&0b00000001;
+	}
+
+	if(output){
+		sprintf(buf,"PWRBTN: %d\r\n",SysCntrl.pwrbtn);
+		UART_putstr(buf);
+	}
+
+	pinState = HAL_GPIO_ReadPin(RSTBTN_PIN);
+	if((pinState&0b00000001)!=SysCntrl.rstbtn){
+		pinState = debouncer(RSTBTN_PIN);
+		if(pinState&0b10000000){
+			SysCntrl.rstbtn = pinState&0b00000001;
+		}
+	}
+
+	if(output){
+		sprintf(buf,"RSTBTN: %d\r\n",SysCntrl.rstbtn);
+		UART_putstr(buf);
+	}
+
+	pinState = HAL_GPIO_ReadPin(ALTBOOT_PIN);
+	if((pinState&0b00000001)!=SysCntrl.altboot){
+		pinState = debouncer(RSTBTN_PIN);
+		if(pinState&0b10000000)
+			SysCntrl.altboot = pinState&0b00000001;
+	}
+
+	if(output){
+		sprintf(buf,"ALTBOOT: %d\r\n",SysCntrl.altboot);
+		UART_putstr(buf);
+	}
+
+	pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
+	if((pinState&0b00000001)!=SysCntrl.stmbootsel){
+		pinState = debouncer(STMBOOTSEL_PIN);
+		if(pinState&0b10000000)
+			SysCntrl.stmbootsel = pinState&0b00000001;
+	}
+
+	if(output){
+		sprintf(buf,"STMBOOTSEL: %d\r\n",SysCntrl.stmbootsel);
+		UART_putstr(buf);
+	}
+}
+
+

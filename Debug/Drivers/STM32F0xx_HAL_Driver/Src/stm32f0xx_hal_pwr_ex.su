@@ -1,0 +1,4 @@
+stm32f0xx_hal_pwr_ex.c:207:6:HAL_PWREx_EnableVddio2Monitor	0	static
+stm32f0xx_hal_pwr_ex.c:217:6:HAL_PWREx_DisableVddio2Monitor	0	static
+stm32f0xx_hal_pwr_ex.c:246:13:HAL_PWREx_Vddio2MonitorCallback	0	static
+stm32f0xx_hal_pwr_ex.c:229:6:HAL_PWREx_Vddio2Monitor_IRQHandler	8	static
