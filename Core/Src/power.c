@@ -15,7 +15,15 @@ void PowerSM() {
 		switch(SysCntrl.power_stage) {
 		// State: CPU is turned off & power is off
 		case 0:
-			SetI2C_Mask(SysCntrl.BootFlash?FLASH_EN_1:FLASH_EN_0);
+			//SetI2C_Mask(SysCntrl.BootFlash?FLASH_EN_1:FLASH_EN_0);
+			 if(SysCntrl.BootFlash){
+				  SetI2C_Mask(FLASH_EN_1);
+				  ClrI2C_Mask(FLASH_EN_0);
+			  }
+			  else{
+				  SetI2C_Mask(FLASH_EN_0);
+				  ClrI2C_Mask(FLASH_EN_1);
+			  }
 			if(SysCntrl.pgin && SysCntrl.PowerState){
 				SysCntrl.power_stage = 10;
 				SysCntrl.PowerTimer = 1000;
@@ -79,8 +87,15 @@ void PowerSM() {
 			SysCntrl.power_stage = 0;
 		break;
 
+		//CPU is turned off && power state is 0
+		case 99:
+			SysCntrl.PowerState = 0;
+			SysCntrl.power_stage = 100;
+			break;
+		//CPU is turned off & is not playing to going on
 		case 100:
-
+			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
+			ClrI2C_Mask(0b11111111);
 			break;
 		}
 }

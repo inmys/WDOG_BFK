@@ -232,15 +232,38 @@ void UART_Con_Mash(){
 	break;
 	case 2:
 		console.idx = 0;
-		if(!strcmp(console.buf,"help")){UART_putstrln("ping!\n\r");return;}
+		if(!strcmp(console.buf,"help")){
+			UART_putstrln("ping!\n\r");
+			return;
+		}
 		else
-		if(!strcmp(console.buf,"restart")){SysCntrl.power_stage = 41;return;}
+		if(!strcmp(console.buf,"restart")){
+			SysCntrl.power_stage = 41;
+			UART_putstrln("CPU restarted...");
+			console.cmdStage = 6;
+			return;
+		}
 		else
-		if(!strcmp(console.buf,"poweroff")){SysCntrl.power_stage = 31;console.cmdStage = 0;return;}
+		if(!strcmp(console.buf,"poweroff")){
+			SysCntrl.power_stage = 100;
+			UART_putstrln("CPU turn off...");
+			console.cmdStage = 6;
+			return;
+		}
 		else
-		if(!strcmp(console.buf,"xmodem")){UART_putstrln("Start XMODEM");Xmodem_Init();console.cmdStage = 0;return;}
+		if(!strcmp(console.buf,"xmodem")){
+			UART_putstrln("Start XMODEM");
+			Xmodem_Init();console.cmdStage = 0;
+			return;
+		}
 		else
-		if(!strcmp(console.buf,"dump1")){EnableSPI();FlashDump(1);DisableSPI();console.cmdStage = 6;return;}
+		if(!strcmp(console.buf,"dump1")){
+			EnableSPI();
+			FlashDump(1);
+			DisableSPI();
+			console.cmdStage = 6;
+			return;
+		}
 		else
 		if(!strcmp(console.buf,"dump0")){EnableSPI();FlashDump(0);DisableSPI();console.cmdStage = 6;return;}
 		else
@@ -291,6 +314,7 @@ void UART_Con_Mash(){
 				// Boot
 				UART_putstrln("Booting...");
 				SysCntrl.PowerState = 1;
+				SysCntrl.power_stage = 0;
 				console.cmdCode = 0;
 				console.cmdStage = 6;
 			break;
@@ -355,8 +379,6 @@ void UART_Con_Mash(){
 
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
-
-
 
 
 uint8_t ByteToHEX(uint8_t bt){
@@ -478,17 +500,9 @@ int main(void)
 */
   	  //BKLSTOP
 
-  SetI2C_Mask(FLASH_EN_0);
-  ClrI2C_Mask(FLASH_EN_1);
- /* if(SysCntrl.BootFlash){
-	  SetI2C_Mask(FLASH_EN_1);
-	  ClrI2C_Mask(FLASH_EN_0);
-  }
-  else{
-	  SetI2C_Mask(FLASH_EN_0);
-	  ClrI2C_Mask(FLASH_EN_1);
-  }
-*/
+//  SetI2C_Mask(FLASH_EN_0);
+//  ClrI2C_Mask(FLASH_EN_1);
+
   DisableSPI();
 
 
@@ -516,6 +530,9 @@ int main(void)
 			  break;
 		  case 1:
 			  //printBin(SysCntrl.BootByte);
+			  if(SysCntrl.pgin == 0) {
+				  SysCntrl.power_stage = 99;
+			  }
 			  PowerSM();
 			  break;
 		  case 2:
@@ -791,7 +808,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
- /**
+/**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM17 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment

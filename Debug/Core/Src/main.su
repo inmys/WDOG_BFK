@@ -1,4 +1,4 @@
-main.c:685:13:MX_SPI1_Init	8	static,ignoring_inline_asm
+main.c:702:13:MX_SPI1_Init	8	static,ignoring_inline_asm
 main.c:117:6:Set_CS.part.0	8	static
 main.c:89:6:DisableSPI	32	static
 main.c:108:6:SetI2C_Mask	16	static
@@ -13,10 +13,10 @@ main.c:155:6:UART_SendByte	16	static
 main.c:159:5:ReadUartNonBlock	20	static
 main.c:176:6:userInput	24	static
 main.c:206:6:UART_Con_Mash	56	static
-main.c:362:9:ByteToHEX	0	static
-main.c:373:6:printBin	56	static
-main.c:381:6:main2	8	static
-main.c:539:6:SystemClock_Config	104	static,ignoring_inline_asm
-main.c:409:5:main	64	static,ignoring_inline_asm
-main.c:802:6:HAL_TIM_PeriodElapsedCallback	8	static
-main.c:823:6:Error_Handler	0	static,ignoring_inline_asm
+main.c:384:9:ByteToHEX	0	static
+main.c:395:6:printBin	56	static
+main.c:403:6:main2	8	static
+main.c:556:6:SystemClock_Config	104	static,ignoring_inline_asm
+main.c:431:5:main	64	static,ignoring_inline_asm
+main.c:819:6:HAL_TIM_PeriodElapsedCallback	8	static
+main.c:840:6:Error_Handler	0	static,ignoring_inline_asm
