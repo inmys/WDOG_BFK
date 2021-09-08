@@ -33,7 +33,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-
+#pragma pack(0)
 
 #define TST_PIO  GPIOA,GPIO_PIN_2
 #define EXT_RST_PIN  GPIOB,GPIO_PIN_4
@@ -60,7 +60,7 @@ extern "C" {
 #define XMODEM_STATE_S3 (4)
 
 
-#define UART_BUF_SIZE 64
+#define UART_BUF_SIZE 32
 #define RX_BUF_SIZE (256)
 
 struct SSysCntrl{
@@ -93,14 +93,7 @@ struct SSysCntrl{
 	uint8_t TimerTick:1;
 	uint16_t MS_counter;
 	// Memory configuration
-	union {
-		uint8_t MemoryByte;
-		struct{
 
-
-			uint8_t MemReserved:2;
-		};
-	};
 
 	union{
 		uint8_t TempInfo;
@@ -143,6 +136,7 @@ struct SSysCntrl{
 struct{
 	uint8_t idx;
 	uint8_t buf[UART_BUF_SIZE];
+	uint8_t buf1[32];
 	// cmdStage:
 	// 0 print menu
 	// 1 wait user input
@@ -150,7 +144,7 @@ struct{
 	// 4 wait confirm prompt
 	// 5 execute
 	// 6 wait user result
-	uint8_t cmdStage;
+	uint16_t cmdStage;
 	uint8_t cmd_flag;
 	uint8_t result;
 	uint8_t cmdCode;

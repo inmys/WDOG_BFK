@@ -12,6 +12,7 @@ void PowerSM() {
 	if(SysCntrl.PowerTimer>0)
 		SysCntrl.PowerTimer--;
 	else
+		// 1 powerTier = 10ms
 		switch(SysCntrl.power_stage) {
 		// State: CPU is turned off & power is off
 		case 0:
@@ -24,16 +25,16 @@ void PowerSM() {
 				  SetI2C_Mask(FLASH_EN_0);
 				  ClrI2C_Mask(FLASH_EN_1);
 			  }
-			if(SysCntrl.pgin && SysCntrl.PowerState){
+			if(SysCntrl.pgin){
 				SysCntrl.power_stage = 10;
-				SysCntrl.PowerTimer = 1000;
+				SysCntrl.PowerTimer = 2;
 			}
 		break;
 		// State: CPU is turned off & power is turning on STAGE 1
 		case 10:
 			SetI2C_Mask(TRST_N|EJ_TRST_N);
 			ClrI2C_Mask(RESET_N|CPU_RST_N);
-			SysCntrl.PowerTimer  = 20;
+			SysCntrl.PowerTimer  = 2;
 			SysCntrl.power_stage = 20;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 2
@@ -46,26 +47,28 @@ void PowerSM() {
 		case 30:
 			SetI2C_Mask(ENA_HV_DCDC);
 			// SUS_S3# set
-			SysCntrl.PowerTimer  = 100;
+			SysCntrl.PowerTimer  = 10;
 			SysCntrl.power_stage = 40;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 4
 		case 40:
 			SetI2C_Mask(CPU_RST_N);
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
-			SysCntrl.PowerTimer  = 1000;
+			SysCntrl.PowerTimer  = 100;
 			SysCntrl.power_stage = 51;
 		break;
 		// State: CPU is on & power is on NORMAL STATE
 		case 51:
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
-			SysCntrl.PowerTimer  = 10;
-			if(SysCntrl.rstbtn)
+			SysCntrl.PowerTimer  = 100;
+			if(SysCntrl.rstbtn){
+				SysCntrl.PowerTimer  = 40;
 				SysCntrl.power_stage = 41;
+			}
 			if(SysCntrl.pwrbtn){
-				SysCntrl.power_stage = 31;
-				SysCntrl.PowerState = 0;
+				SysCntrl.power_stage = 100;
+				SysCntrl.PowerTimer = 500;
 			}
 		break;
 		// State: CPU is on & requested soft reset
@@ -81,21 +84,13 @@ void PowerSM() {
 			SysCntrl.power_stage = 51;
 		break;
 
-		case 31:
-			ClrI2C_Mask(0b11111111);
-			SysCntrl.PowerTimer  = 1000;
-			SysCntrl.power_stage = 0;
-		break;
 
-		//CPU is turned off && power state is 0
-		case 99:
-			SysCntrl.PowerState = 0;
-			SysCntrl.power_stage = 100;
-			break;
-		//CPU is turned off & is not playing to going on
+		//CPU is turned off & is not planing to going on
 		case 100:
 			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
 			ClrI2C_Mask(0b11111111);
+			if(((SysCntrl.pwrbtn==1)|| (SysCntrl.PowerState==1)) && (SysCntrl.power_stage == 100))
+				SysCntrl.power_stage = 0;
 			break;
 		}
 }
@@ -137,7 +132,7 @@ void checkPowerLevels(uint8_t output){
 
 	SysCntrl.pgin = (pinState)?0:1;
 	if(output){
-		sprintf(buf,"PGIN: %d\r\n",(pinState)?0:1);
+		sprintf(buf,"PGIN: %d\r\n",SysCntrl.pgin);
 		UART_putstr(buf);
 	}
 

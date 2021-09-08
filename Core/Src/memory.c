@@ -265,20 +265,21 @@ void FlashDump(uint8_t cs){
 
 void memoryMenu(){
 	char buf[BUF_LEN];
-	sprintf(buf,"CPU main flash #%d\r\n",SysCntrl.MainFlash);
-	UART_putstr(buf);
+	sprintf(buf,"CPU main flash #%d",SysCntrl.MainFlash);
+	UART_putstrln(buf);
 	clearBuf(buf);
-	sprintf(buf,"CPU boot flash #%d\r\n",SysCntrl.BootFlash);
-	UART_putstr(buf);
+	sprintf(buf,"CPU boot flash #%d",SysCntrl.BootFlash);
+	UART_putstrln(buf);
 	clearBuf(buf);
-	sprintf(buf,"CPU boot attempt %d of 4\r\n",SysCntrl.BootAttempt);
-	UART_putstr(buf);
+	sprintf(buf,"CPU boot attempt %d of 4",SysCntrl.BootAttempt);
+	UART_putstrln(buf);
 	clearBuf(buf);
-	sprintf(buf,"Watchdog: %s \r\n",SysCntrl.Watchdog?"Enabled":"Disabled");
-	UART_putstr(buf);
-	sprintf(buf,"Power state: %s \r\nLaunch is %s\r\n",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
-	UART_putstr(buf);
-
+	sprintf(buf,"Watchdog: %s",SysCntrl.Watchdog?"Enabled":"Disabled");
+	UART_putstrln(buf);
+	sprintf(buf,"Auto boot: %s \r\nLaunch is %s",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
+	UART_putstrln(buf);
+	sprintf(buf,"CPU Power stage: %d",SysCntrl.power_stage);
+	UART_putstrln(buf);
 }
 
 void writeConfig(){
