@@ -96,23 +96,33 @@ struct SSysCntrl{
 	union {
 		uint8_t MemoryByte;
 		struct{
-			//cs status
-			uint8_t cs0:2;
-			uint8_t cs1:2;
-			uint8_t BootAttempt:2;
+
+
 			uint8_t MemReserved:2;
 		};
 	};
 
+	union{
+		uint8_t TempInfo;
+		struct{
+			uint8_t BootFlash:1;
+			uint8_t BootAttempt:2;
+		};
+	};
+
 	union {
-		uint8_t BootByte;
+		struct{
+		uint8_t SavedConfigH;
+		uint8_t SavedConfigL;
+		};
 		struct{
 			// boot settings
-			uint8_t BootFlash:1; // 0/1
 			uint8_t MainFlash:1; // 0/1
+			uint8_t cs0:2;
+			uint8_t cs1:2;
 			uint8_t Watchdog:1; //  0/1
 			uint8_t PowerState:1; // 0 - off by key / 1 - on
-			uint8_t Magic:4; // 1011 - OK
+			uint8_t Magic:5; // 10110 - OK
 			};
 		};
 
@@ -122,7 +132,6 @@ struct SSysCntrl{
 			uint8_t pgin:1;
 			uint8_t pwrbtn:1;
 			uint8_t rstbtn:1;
-			uint8_t altboot:1;
 			uint8_t stmbootsel:1;
 
 
@@ -145,6 +154,7 @@ struct{
 	uint8_t cmd_flag;
 	uint8_t result;
 	uint8_t cmdCode;
+	uint8_t args[3];
 } console;
 
 

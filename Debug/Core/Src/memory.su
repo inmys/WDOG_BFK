@@ -10,4 +10,4 @@ memory.c:223:6:Xmodem_Init	8	static
 memory.c:238:6:FlashDump	24	static
 memory.c:266:6:memoryMenu	56	static
 memory.c:284:6:writeConfig	32	static
-memory.c:306:6:readConfig	0	static
+memory.c:300:6:readConfig	0	static

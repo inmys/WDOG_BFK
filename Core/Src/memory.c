@@ -291,13 +291,7 @@ void writeConfig(){
 	uint32_t error;
 	HAL_FLASH_Unlock();
 	HAL_FLASHEx_Erase(&EraseInitStruct,&error);
-	//HAL_Delay(500);
-	uint16_t data = (SysCntrl.MemoryByte<<8)|(SysCntrl.BootByte);
-
-	UART_SendByte(data);
-
-	//HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,CONFIG_ADDR_IN_FLASH,data);
-
+	uint16_t data = (SysCntrl.SavedConfigH<<8)|(SysCntrl.SavedConfigL);
 	HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,CONFIG_ADDR_IN_FLASH, data);
 	HAL_Delay(500);
 	HAL_FLASH_Lock();
@@ -306,8 +300,8 @@ void writeConfig(){
 void readConfig(){
 	uint16_t *data = (uint16_t*) CONFIG_ADDR_IN_FLASH;
 
-	SysCntrl.BootByte = (*data)&(0b0000000011111111);
-	SysCntrl.MemoryByte = (*data)>>8;
+	SysCntrl.SavedConfigL = (*data)&(0b0000000011111111);
+	SysCntrl.SavedConfigH = (*data)>>8;
 
 }
 

@@ -148,7 +148,8 @@ void UART_putstr(char *str){
 // ПРОВЕРИТЬ
 void UART_putstrln(char *str){
 	while(CDC_Transmit_FS((uint8_t*)str,strlen(str)) != USBD_OK);
-	while(CDC_Transmit_FS((uint8_t*)"\n\r",3) != USBD_OK);
+	HAL_Delay(1);
+	while(CDC_Transmit_FS((uint8_t*)"\r\n",3) != USBD_OK);
 }
 
 
@@ -169,9 +170,8 @@ int ReadUartNonBlock(uint8_t *buf,int size) {
 }
 
 const char** menu[] = {"1) Boot","2) Update flash 0","3) Update flash 1","4) Toggle main flash",
-		"5) Toggle boot flash", "6) Toggle watchdog","{Set FW status to: UPDATED}",
-		"{Set FW status to: CONFIRMED}", "{Set FW status to: BAD}","{Update MCU}"};
-
+		"5) Toggle boot flash", "6) Toggle watchdog","7) Edit flash status"};
+const char** text[] = {"Choose CS (1/2):","Wrong value","Choose State (1-3):"};
 
 void userInput(){
 	uint8_t bt;
@@ -190,9 +190,6 @@ void userInput(){
 				if(bt == '\r'){
 					console.buf[console.idx++] = 0;
 					console.cmd_flag = 1;
-//					char msg[10];
-//					sprintf(msg, "console.idx=%d", console.idx);
-//					UART_putstrln(msg);
 				}else{
 					console.buf[console.idx++] = bt;
 				}
@@ -203,9 +200,17 @@ void userInput(){
 	}while(console.result && (!console.cmd_flag));
 }
 
+void refreshConsoleS(){
+	int i;
+	for(i=0;i<UART_BUF_SIZE;i++)
+		console.buf[i] = 0;
+	console.cmd_flag = 0;
+}
+
+
 void UART_Con_Mash(){
 	char buf[32] = {0};
-	uint8_t i;
+	uint8_t i,j;
 	if(SysCntrl.XmodemMode) {
 		Xmodem_SPI();return;
 	}
@@ -214,23 +219,23 @@ void UART_Con_Mash(){
 		console.cmdStage=1;
 		// temp way
 		UART_putstrln("\r\n\r\n\r\n\r\n\r\n\r\n");
-		//UART_putstr("\033[2J");
 		UART_putstrln("--------");
 		memoryMenu();
 		UART_putstrln("--------");
-		for(i=0;i<10;i++)
+		for(i=0;i<7;i++)
 			UART_putstrln(menu[i]);
-
 		UART_putstr(">>");
+		refreshConsoleS();
 	break;
 	case 1:
+		// choose menu
 		userInput();
 		if(console.cmd_flag){
 			console.cmdStage=2;
-			console.cmd_flag = 0;
 		}
 	break;
 	case 2:
+		// decode text command
 		console.idx = 0;
 		if(!strcmp(console.buf,"help")){
 			UART_putstrln("ping!\n\r");
@@ -273,16 +278,10 @@ void UART_Con_Mash(){
 		else
 		if(!strcmp(console.buf,"mm")){memoryMenu(1); return;}
 		else
-		if(!strcmp(console.buf,"memWrite")){SysCntrl.BootByte = 'O';SysCntrl.MemoryByte++;writeConfig();UART_putstrln("wrote");console.cmdStage = 0;return;}
-		else
-		if(!strcmp(console.buf,"memRead")){readConfig();sprintf(buf,"Got [%c%c]\r\n",SysCntrl.BootByte,SysCntrl.MemoryByte);UART_putstrln(buf);console.cmdStage = 0;return;}
-		else
 		if(!strcmp(console.buf,"pwrState")){
 			sprintf(buf,"power stage:%d",SysCntrl.power_stage);
 			UART_putstrln(buf);console.cmdStage = 7;return;}
 		else
-//		if(!strcmp(console.buf,"")){UART_putstr(">>");console.cmdStage = 0; return;}
-//		else
 		{
 			console.cmdCode = atoi(console.buf);
 			if(console.cmdCode>0 && console.cmdCode<11)
@@ -292,12 +291,14 @@ void UART_Con_Mash(){
 		}
 	break;
 	case 3:
+		// check if user is okay
 		UART_putstrln(menu[console.cmdCode-1]);
-		//UART_putstr("Press «Y» to confirm:");
 		UART_putstr("Are you sure?(y/n)");
 		console.cmdStage = 4;
+		refreshConsoleS();
 	break;
 	case 4:
+		// check user prompt
 		userInput();
 		if(console.cmd_flag){
 			if((!strcmp(console.buf,"Y")) || (!strcmp(console.buf,"y")))
@@ -309,6 +310,7 @@ void UART_Con_Mash(){
 		}
 	break;
 	case 5:
+		// decode commands
 			switch(console.cmdCode){
 			case 1:
 				// Boot
@@ -348,24 +350,16 @@ void UART_Con_Mash(){
 				console.cmdStage = 6;
 			break;
 			case 7:
+				// Set Flash status
+				console.cmdStage=700;
 				;
 			break;
-			case 8:
-				// Set FW status to: CONFIRMED
-				;
-			break;
-			case 9:
-				// Set FW status to: BAD
-				;
-			break;
-			case 10:
-				// Update MCU
-				;
-			break;
+
 			}
 	break;
 	case 6:
 		UART_putstr("\r\nPress any key to continue");
+		console.cmd_flag = 0;
 		console.cmdStage = 7;
 		break;
 	case 7:
@@ -374,8 +368,60 @@ void UART_Con_Mash(){
 				console.cmdStage = 0;
 		}
 		break;
+	case 700:
+		UART_putstrln(text[0]);
+		console.cmdStage = 701;
+		refreshConsoleS();
+		break;
+	case 701:
+		// choose CS 0/1
+		userInput();
+			UART_putstrln("HERE HERE");
+		if(console.cmd_flag){
+			console.args[0] = atoi(console.buf);
+			if(console.args[0] != 1 && console.args[0] != 2)
+				console.cmdStage = 799;
+			else
+				console.cmdStage = 702;
+			UART_putstrln(text[2]);
 		}
+		break;
+	case 702:
+		// choose state
+		userInput();
+		if(console.cmd_flag){
+			console.args[0] = atoi(console.buf);
+			if(console.args[0] != 1 && console.args[0] != 2)
+				console.cmdStage = 799;
+			else{
+				console.cmdStage = 703;
+				UART_pustrln(text[2]);
+			}
+		}
+	case 703:
+		userInput();
+		if(console.cmd_flag){
+			console.args[1] = atoi(console.buf);
+			if(console.args[1] != 1 && console.args[1] != 2 && console.args[1] != 3)
+				console.cmdStage = 799;
+			else{
+				console.cmdStage = 6;
+				if(console.args[0]==1)
+					SysCntrl.cs0 = console.args[1]-1;
+				else
+					SysCntrl.cs1 = console.args[1]-1;
+			}
+		}
+
+		break;
+	case 799:
+		UART_putstrln(text[1]);
+		console.cmdStage = 6;
+		break;
 	}
+
+	}
+
 
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
@@ -444,11 +490,15 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   readConfig();
-  if(0 && SysCntrl.Magic!=0b1011){
-	SysCntrl.MemoryByte = 0b00011000;
-	SysCntrl.BootByte   = 0b00011011;
+  if(SysCntrl.Magic!=0b10110){
+	SysCntrl.MainFlash = 0;
+	SysCntrl.cs0 = 3;
+	SysCntrl.cs1 = 3;
+	SysCntrl.Watchdog = 1;
+	SysCntrl.PowerState = 1;
+	SysCntrl.Magic = 0b10110;
+	writeConfig();
   }
-  //UART_putstr("Got from mem:");
 
   SysCntrl.power_stage = 0;
   // GPIO extender address

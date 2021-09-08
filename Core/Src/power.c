@@ -166,17 +166,6 @@ void checkPowerLevels(uint8_t output){
 		UART_putstr(buf);
 	}
 
-	pinState = HAL_GPIO_ReadPin(ALTBOOT_PIN);
-	if((pinState&0b00000001)!=SysCntrl.altboot){
-		pinState = debouncer(RSTBTN_PIN);
-		if(pinState&0b10000000)
-			SysCntrl.altboot = pinState&0b00000001;
-	}
-
-	if(output){
-		sprintf(buf,"ALTBOOT: %d\r\n",SysCntrl.altboot);
-		UART_putstr(buf);
-	}
 
 	pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
 	if((pinState&0b00000001)!=SysCntrl.stmbootsel){
