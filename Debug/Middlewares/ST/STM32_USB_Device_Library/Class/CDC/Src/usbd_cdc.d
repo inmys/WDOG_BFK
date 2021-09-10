@@ -38,6 +38,7 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o: \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
+ ../Core/Inc/text.h ../Core/Inc/Structs.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ioreq.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_ctlreq.h \
@@ -120,6 +121,10 @@ Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.o: \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h:
 
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
+
+../Core/Inc/text.h:
+
+../Core/Inc/Structs.h:
 
 ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_core.h:
 

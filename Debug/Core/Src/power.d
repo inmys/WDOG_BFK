@@ -1,4 +1,5 @@
-Core/Src/power.o: ../Core/Src/power.c ../Core/Inc/main.h \
+Core/Src/power.o: ../Core/Src/power.c ../Core/Inc/structs.h \
+ ../Core/Inc/text.h ../Core/Inc/power.h ../Core/Inc/memory.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -32,10 +33,15 @@ Core/Src/power.o: ../Core/Src/power.c ../Core/Inc/main.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_spi_ex.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h \
- ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h \
- ../Core/Inc/power.h
+ ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h
 
-../Core/Inc/main.h:
+../Core/Inc/structs.h:
+
+../Core/Inc/text.h:
+
+../Core/Inc/power.h:
+
+../Core/Inc/memory.h:
 
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 
@@ -104,5 +110,3 @@ Core/Src/power.o: ../Core/Src/power.c ../Core/Inc/main.h \
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim.h:
 
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_tim_ex.h:
-
-../Core/Inc/power.h:

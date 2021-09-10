@@ -4,8 +4,12 @@
  *  Created on: Aug 5, 2021
  *      Author: vovav
  */
-#include "main.h"
+#include "structs.h"
 #include "power.h"
+#include "memory.h"
+#include "text.h"
+
+int BootMenu();
 
 void PowerSM() {
 
@@ -15,8 +19,35 @@ void PowerSM() {
 		// 1 powerTier = 10ms
 		switch(SysCntrl.power_stage) {
 		// State: CPU is turned off & power is off
+		//CPU is turned off & is not planing to going on
+		case 100:
+			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
+			ClrI2C_Mask(0b11111111);
 		case 0:
-			//SetI2C_Mask(SysCntrl.BootFlash?FLASH_EN_1:FLASH_EN_0);
+			 if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
+				 SysCntrl.BootFlash = SysCntrl.MainFlash;
+			 else{
+				 if(SysCntrl.BootAttempt>0){
+					 SysCntrl.BootAttempt--;
+					 SysCntrl.BootFlash = ~SysCntrl.MainFlash;
+				 }
+				 else
+				 {
+					 SysCntrl.FWStatus = BAD;
+					 SysCntrl.BootFlash = SysCntrl.MainFlash;
+				 }
+				 //writeConfig();
+			 }
+			 SysCntrl.power_stage = 1;
+		break;
+		case 1:
+			//if(((SysCntrl.pwrbtn==1)|| (SysCntrl.PowerState==1)) && (SysCntrl.power_stage == 100))
+			//	SysCntrl.power_stage = 0;
+			if(BootMenu())
+				SysCntrl.power_stage = 9;
+		break;
+		case 9:
+
 			 if(SysCntrl.BootFlash){
 				  SetI2C_Mask(FLASH_EN_1);
 				  ClrI2C_Mask(FLASH_EN_0);
@@ -84,14 +115,6 @@ void PowerSM() {
 			SysCntrl.power_stage = 51;
 		break;
 
-
-		//CPU is turned off & is not planing to going on
-		case 100:
-			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
-			ClrI2C_Mask(0b11111111);
-			if(((SysCntrl.pwrbtn==1)|| (SysCntrl.PowerState==1)) && (SysCntrl.power_stage == 100))
-				SysCntrl.power_stage = 0;
-			break;
 		}
 }
 
@@ -173,6 +196,89 @@ void checkPowerLevels(uint8_t output){
 		sprintf(buf,"STMBOOTSEL: %d\r\n",SysCntrl.stmbootsel);
 		UART_putstr(buf);
 	}
+}
+
+
+
+
+uint8_t confirm(){
+	refreshConsoleS();
+	UART_putstr("Press \"Y\" to confirm");
+	while(!console.cmd_flag) userInput(1);
+	if((!strcmp(console.buf,"Y")) || (!strcmp(console.buf,"y")))
+		return 1;
+	return 0;
+}
+
+int BootMenu(){
+	uint8_t i,result = 0;
+	clearUartConsole();
+	UART_putstrln(WELCOME_SCREEN);
+	memoryMenu();
+	UART_putstr("CPU FW status:");
+	UART_putstrln(CS_STASTUS_LABELS[SysCntrl.FWStatus]);
+	for(i=0;i<10;i++)
+		UART_putstrln(menu[i]);
+	refreshConsoleS();
+	while(!console.cmd_flag) userInput(0);
+	uint8_t cmd = atoi(console.buf)-1;
+	switch(cmd){
+	case 0:
+		UART_putstrln("Booting...");
+		result = 1;
+		break;
+	case 1:
+		// Update 1st flash
+		if(SysCntrl.MainFlash == 0){
+			UART_putstrln(text[3]);
+			// ERROR
+		}
+		else{
+			SysCntrl.active_cs = 0;
+			Xmodem_Init();
+			while(SysCntrl.XmodemMode) Xmodem_SPI();
+		}
+	break;
+	case 2:
+		// Update 1st flash
+		if(SysCntrl.MainFlash == 1){
+			UART_putstrln(text[3]);
+			// ERROR
+		}
+		else{
+			SysCntrl.active_cs = 1;
+			Xmodem_Init();
+			while(SysCntrl.XmodemMode) Xmodem_SPI();
+		}
+	break;
+	case 3:
+		// Toggle main flash
+		SysCntrl.MainFlash = ~SysCntrl.MainFlash;
+		writeConfig();
+	case 4:
+		// Toggle boot flash
+		SysCntrl.BootFlash = ~SysCntrl.BootFlash;
+	break;
+	case 5:
+		// Toggle watchdog
+		SysCntrl.Watchdog = ~SysCntrl.Watchdog;
+	break;
+	case 6:
+		// Set FW status to CONFIRMED
+		SysCntrl.FWStatus = CONFIRMED;
+	break;
+	case 7:
+		// Set FW status to UPDATED
+		SysCntrl.FWStatus = UPDATED;
+	break;
+	case 8:
+		// Set FW status to BAD
+		SysCntrl.FWStatus = BAD;
+	break;
+
+	}
+	refreshConsoleS();
+	return result;
 }
 
 

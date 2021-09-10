@@ -1,0 +1,109 @@
+/*
+ * Structs.h
+ *
+ *  Created on: 10 сент. 2021 г.
+ *      Author: nms
+ */
+
+#ifndef SRC_STRUCTS_H_
+#define SRC_STRUCTS_H_
+#include<stdint.h>
+#include"text.h"
+
+struct SSysCntrl{
+	uint8_t power_stage;
+	uint8_t PowerTimer;
+	// power subsystem signal values (see POWER SUBSYSTEM SIGNALS in power header)
+	uint8_t i2c_bt[2];
+	uint8_t active_cs;
+	uint8_t spi_buf_tx[16];
+	uint8_t spi_buf_rx[16];
+
+	uint8_t uart_rx_buf[RX_BUF_SIZE];
+	uint16_t rx_head;
+	uint16_t rx_tail;
+
+
+	uint8_t SPI_page[256];
+	uint8_t SPI_rxbuf[140];
+	uint32_t SPI_page_idx;
+	uint32_t SPI_address;
+	uint32_t t_idx;
+	uint32_t X_idx;
+	uint32_t bt_count;
+	uint8_t XmodemState;
+	uint8_t XmodemMode:1;
+	uint32_t TimerCnt;
+	uint8_t TryCounter;
+
+
+	uint8_t TimerTick:1;
+	uint16_t MS_counter;
+	// Memory configuration
+
+
+	union{
+		uint8_t TempInfo;
+		struct{
+			uint8_t BootFlash:1;
+			uint8_t Watchdog:1; //  0/1
+		};
+	};
+
+	union {
+		struct{
+		uint8_t SavedConfigH;
+		uint8_t SavedConfigL;
+		};
+		struct{
+			// boot settings
+			uint8_t MainFlash:1; // 0/1
+			uint8_t FWStatus:2;
+			uint8_t BootAttempt:2;
+			uint8_t PowerState:1; // 0 - off by key / 1 - on
+			uint8_t Magic:5; // 10110 - OK
+			};
+		};
+
+	union{
+		uint8_t IOStatus;
+		struct{
+			uint8_t pgin:1;
+			uint8_t pwrbtn:1;
+			uint8_t rstbtn:1;
+			uint8_t stmbootsel:1;
+
+		};
+	};
+}SysCntrl;
+
+
+struct SConsole{
+	uint8_t idx;
+	uint8_t buf[UART_BUF_SIZE];
+	uint8_t buf1[32];
+	// cmdStage:
+	// 0 print menu
+	// 1 wait user input
+	// 3 print prompt
+	// 4 wait confirm prompt
+	// 5 execute
+	// 6 wait user result
+	uint16_t cmdStage;
+	uint8_t cmd_flag;
+	uint8_t result;
+	uint8_t cmdCode;
+	uint8_t args[3];
+	uint8_t timer;
+} console;
+
+
+enum CS_STASTUS{
+	CONFIRMED = 0b00,
+	UPDATED = 0b01,
+	BAD = 0b10,
+	RESERVED = 0b11
+};
+
+
+#endif /* SRC_STRUCTS_H_ */

@@ -1,3 +1,5 @@
-power.c:10:6:PowerSM	16	static
-power.c:106:9:debouncer	32	static
-power.c:126:6:checkPowerLevels	40	static
+power.c:129:9:debouncer	32	static
+power.c:149:6:checkPowerLevels	40	static
+power.c:204:9:confirm	8	static
+power.c:213:5:BootMenu	24	static
+power.c:14:6:PowerSM	16	static

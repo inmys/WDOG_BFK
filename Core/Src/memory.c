@@ -1,4 +1,4 @@
-#include "main.h"
+#include "structs.h"
 #include "memory.h"
 
 extern SPI_HandleTypeDef hspi1;
@@ -129,6 +129,7 @@ uint8_t SPI_ReadID(uint8_t cs,struct memoryReport *data) {
 	return result;
 }
 
+extern struct SConsole console;
 void Xmodem_SPI(){
 	uint8_t bt;
 	int result,i;
@@ -139,19 +140,25 @@ void Xmodem_SPI(){
 	case XMODEM_STATE_INIT:
 		result = ReadUartNonBlock(&bt,1);
 		if((result>0)) {
-			if( bt == 0x01) {
+			switch(bt){
+			case 0x01:
 				SysCntrl.XmodemState = XMODEM_STATE_S0;
 				SysCntrl.X_idx = 0;
 
 				SysCntrl.SPI_page_idx = 0;
 				SysCntrl.bt_count = 128+4;
+			break;
+			case 0x03:
+				SysCntrl.XmodemMode = 0;
+				break;
 			}
 		} else {
 			if(!result && !SysCntrl.TimerCnt) {
 				SysCntrl.TryCounter--;
 				if(!SysCntrl.TryCounter) {
 					SysCntrl.XmodemMode = 0;
-					UART_putstr("Timout...\n\r");
+					UART_putstrln("Timeout...");
+					console.cmdStage = 0;
 				}
 				else {
 					SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
@@ -172,8 +179,6 @@ void Xmodem_SPI(){
 				UART_SendByte(0x06); // ACK
 				for(i=0;i<128;i++) {
 					SysCntrl.SPI_page[SysCntrl.SPI_page_idx++] = SysCntrl.SPI_rxbuf[i+2];
-					//Uart_Cntrl.SPI_page[Uart_Cntrl.SPI_page_idx++] =Uart_Cntrl.SPI_page_idx;
-
 				}
 				if(SysCntrl.SPI_page_idx >= 255)
 					Flash_PageWrite();
@@ -226,8 +231,6 @@ void Xmodem_Init(){
 	SysCntrl.XmodemState = XMODEM_STATE_INIT;
 	SysCntrl.TryCounter = 100;
 	SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
-	SysCntrl.SPI_address = 0;
-	//Switch_BootSpi2BMC();
 	UART_putstr("C");
 }
 
@@ -265,20 +268,20 @@ void FlashDump(uint8_t cs){
 
 void memoryMenu(){
 	char buf[BUF_LEN];
-	sprintf(buf,"CPU main flash #%d",SysCntrl.MainFlash);
+	sprintf(buf,"CPU main flash #%d",SysCntrl.MainFlash+1);
 	UART_putstrln(buf);
 	clearBuf(buf);
-	sprintf(buf,"CPU boot flash #%d",SysCntrl.BootFlash);
+	sprintf(buf,"CPU boot flash #%d",SysCntrl.BootFlash+1);
 	UART_putstrln(buf);
 	clearBuf(buf);
-	sprintf(buf,"CPU boot attempt %d of 4",SysCntrl.BootAttempt);
+	sprintf(buf,"CPU boot attempt: %d",SysCntrl.BootAttempt);
 	UART_putstrln(buf);
 	clearBuf(buf);
 	sprintf(buf,"Watchdog: %s",SysCntrl.Watchdog?"Enabled":"Disabled");
 	UART_putstrln(buf);
 	sprintf(buf,"Auto boot: %s \r\nLaunch is %s",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
 	UART_putstrln(buf);
-	sprintf(buf,"CPU Power stage: %d",SysCntrl.power_stage);
+	sprintf(buf,"DEBUG: CPU Power stage: %d",SysCntrl.power_stage);
 	UART_putstrln(buf);
 }
 

@@ -70,8 +70,6 @@ static void MX_SPI1_Init(void);
 static void MX_ADC_Init(void);
 /* USER CODE BEGIN PFP */
 
-const char *CS_STASTUS_LABELS[] = {"CONFIRMED","UPDATED","BAD","RESERVED"};
-
 void EnableSPI() {
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	ClrI2C_Mask(FLASH_EN_0|FLASH_EN_1);
@@ -171,9 +169,6 @@ int ReadUartNonBlock(uint8_t *buf,int size) {
 	return cnt;
 }
 
-const char** menu[] = {"1) Boot","2) Update flash 0","3) Update flash 1","4) Toggle main flash",
-		"5) Toggle boot flash", "6) Toggle watchdog","7) Edit flash status"};
-const char** text[] = {"Choose CS (1/2):","Wrong value","Choose State (1-3):","--------"};
 
 void userInput(uint8_t anykey){
 	uint8_t bt;
@@ -217,244 +212,84 @@ void refreshConsoleS(){
 //	memset(&console,0,sizeof(console));
 }
 
+char *clr = "\e[3J";
 void clearUartConsole(){
 	// temp way
-	UART_putstrln("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+	while(CDC_Transmit_FS((uint8_t*)clr,strlen(clr)) != USBD_OK);
 }
+
 void UART_Con_Mash(){
-	char buf[32] = {0};
-	uint8_t i,j;
-	if(SysCntrl.XmodemMode) {
-		Xmodem_SPI();return;
-	}
-	switch(console.cmdStage){
-	case 0:
-		console.cmdStage=1;
-		clearUartConsole();
-		UART_putstrln(WELCOME_SCREEN);
-		UART_putstrln(text[3]);
-		memoryMenu();
-		for(i=0;i<7;i++)
-			UART_putstrln(menu[i]);
-		UART_putstr(">>");
-		refreshConsoleS();
-	break;
-	case 1:
-		// choose menu
-		userInput(0);
-		if(console.cmd_flag)
-			console.cmdStage=2;
-	break;
-	case 2:
-		// decode text command
-		console.idx = 0;
+	char buf[16];
+	userInput(0);
+	if(console.cmd_flag){
 		if(!strcmp(console.buf,"help")){
-			UART_putstrln("ping!\n\r");
-			return;
+			UART_putstrln("ping!");
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
 			SysCntrl.power_stage = 41;
 			UART_putstrln("CPU restarted...");
-			console.cmdStage = 6;
-			return;
+			refreshConsoleS();
+			UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"autoboot")){
 			SysCntrl.PowerState =(SysCntrl.PowerState)?0:1;
 			writeConfig();
-			console.cmdStage = 6;
-			return;
 		}
 		else
 		if(!strcmp(console.buf,"poweroff")){
 			SysCntrl.power_stage = 100;
 			UART_putstrln("CPU turn off...");
-			console.cmdStage = 6;
-			return;
+			refreshConsoleS();
+			UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"xmodem")){
 			UART_putstrln("Start XMODEM");
-			Xmodem_Init();console.cmdStage = 0;
-			return;
+			console.cmdStage = 100;
 		}
 		else
 		if(!strcmp(console.buf,"dump1")){
 			EnableSPI();
 			FlashDump(1);
 			DisableSPI();
-			console.cmdStage = 6;
-			return;
+			UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"dump0")){
 			EnableSPI();
 			FlashDump(0);
 			DisableSPI();
-			console.cmdStage = 6;
-			return;
+			UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"post")){
 			POST();
 			console.cmdStage = 6;
-			return;
 		}
 		else
 		if(!strcmp(console.buf,"power")){
 			checkPowerLevels(1);
 			console.cmdStage = 6;
-			return;
 		}
 		else
 		if(!strcmp(console.buf,"mm")){
 			memoryMenu(1);
 			console.cmdStage = 6;
-			return;
 		}
 		else
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);
 			UART_putstrln(buf);
 			console.cmdStage = 7;
-			return;
 		}
 		else
-		{
-			console.cmdCode = atoi(console.buf);
-			if(console.cmdCode>0 && console.cmdCode<11)
-				console.cmdStage = 3;
-			else
-				console.cmdStage = 0;
-		}
-	break;
-	case 3:
-		// check if user is okay
-		UART_putstrln(menu[console.cmdCode-1]);
+			UART_putstrln("Unknown command");
 		refreshConsoleS();
-		UART_putstr("Are you sure?(y/n)");
-		console.cmdStage = 4;
-
-	break;
-	case 4:
-		// check user prompt
-		userInput(0);
-		if(console.cmd_flag){
-			if((!strcmp(console.buf,"Y")) || (!strcmp(console.buf,"y")))
-				console.cmdStage = 5;
-			else
-				console.cmdStage = 6;
-			refreshConsoleS();
-
-		}
-	break;
-	case 5:
-		// decode commands
-			UART_putstrln(0);
-			switch(console.cmdCode){
-			case 1:
-				// Boot
-				UART_putstrln("Booting...");
-				SysCntrl.power_stage = 0;
-				console.cmdCode = 0;
-				console.cmdStage = 6;
-			break;
-			case 2:
-				// Update 1st
-				Clr_CS(0);
-				Set_CS(1);
-				Xmodem_Init();
-			break;
-			case 3:
-				// Update 2nd
-				Clr_CS(1);
-				Set_CS(0);
-				Xmodem_Init();
-			break;
-			case 4:
-				// Toggle main flash
-				SysCntrl.MainFlash = ~SysCntrl.MainFlash;
-				writeConfig();
-				console.cmdStage = 6;
-			break;
-			case 5:
-				// Toggle boot flash
-				SysCntrl.BootFlash = ~SysCntrl.BootFlash;
-				writeConfig();
-				console.cmdStage = 6;
-			break;
-			case 6:
-				// Toggle watchdog
-				SysCntrl.Watchdog = ~SysCntrl.Watchdog;
-				console.cmdStage = 6;
-			break;
-			case 7:
-				// Set Flash status
-				console.cmdStage=700;
-				;
-			break;
-
-			}
-	break;
-	case 6:
-		UART_putstr("\r\nPress any key to continue");
-		console.cmd_flag = 0;
-		console.cmdStage = 7;
-		break;
-	case 7:
-		userInput(1);
-		if(console.cmd_flag){
-				console.cmdStage = 0;
-		}
-		break;
-	case 700:
-		refreshConsoleS();
-		// Choose CS text
-		UART_putstr(text[0]);
-		console.cmdStage = 701;
-		//refreshConsoleS();
-		break;
-	case 701:
-		// choose CS 0/1 ()
-		userInput(0);
-			//UART_putstrln("HERE HERE");
-		if(console.cmd_flag){
-			console.args[0] = atoi(console.buf);
-			if ((console.args[0] == 1) || (console.args[0] == 2)){
-				console.cmdStage = 702;
-				UART_putstrln(0);
-				UART_putstrln(text[2]);
-				refreshConsoleS();
-			}
-			else{
-				console.cmdStage = 799;
-			}
-		}
-		break;
-	case 702:
-		userInput(0);
-		if(console.cmd_flag){
-			console.args[1] = atoi(console.buf);
-			if((console.args[1] != 1) && (console.args[1] != 2) && (console.args[1] != 3))
-				console.cmdStage = 799;
-			else{
-				console.cmdStage = 6;
-				if(console.args[0]==1)
-					SysCntrl.cs0 = console.args[1]-1;
-				else
-					SysCntrl.cs1 = console.args[1]-1;
-			}
-			writeConfig();
-		}
-		break;
-	case 799:
-		UART_putstrln(text[1]);
-		console.cmdStage = 6;
-		break;
 	}
 
-	}
+}
 
 
 
@@ -504,24 +339,19 @@ int main(void)
   readConfig();
   if(SysCntrl.Magic!=0b10110){
 	SysCntrl.MainFlash = 0;
-	SysCntrl.cs0 = 3;
-	SysCntrl.cs1 = 3;
+	SysCntrl.FWStatus = 0;
 	SysCntrl.Watchdog = 1;
 	SysCntrl.PowerState = 1;
 	SysCntrl.Magic = 0b10110;
 	writeConfig();
   }
-
-  SysCntrl.power_stage = 100;
+  SysCntrl.power_stage = 0;
   // GPIO extender address
   SysCntrl.i2c_bt[0] = 0x1;
   SysCntrl.i2c_bt[1] = 0;
-  //SysCntrl.active_cs = 0;
   SysCntrl.rx_head = 0;
   SysCntrl.rx_tail = 0;
-  console.idx = 0;
-  for(i = 0;i<UART_BUF_SIZE;i++)
-	  console.buf[i] = 0;
+  refreshConsoleS();
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -552,27 +382,14 @@ int main(void)
 
 
   USB_EnableGlobalInt(&hUsbDeviceFS);
-  //HAL_GPIO_DeInit(GPIOB,GPIO_PIN_0|GPIO_PIN_3);
 
-/*
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_3;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-*/
-  	  //BKLSTOP
 
-//  SetI2C_Mask(FLASH_EN_0);
-//  ClrI2C_Mask(FLASH_EN_1);
+
 
   DisableSPI();
 
-
-//  __enable_irq();
-
-
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
-  //UART_putstrln(WELCOME_SCREEN);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -587,11 +404,13 @@ int main(void)
 		  SysCntrl.TimerTick = 0;
 		  switch(SysCntrl.MS_counter % 10) {
 		  case 0:
-			 switch(hUsbDeviceFS.dev_state){
-			 	 case USBD_STATE_CONFIGURED:
-			 		 UART_Con_Mash();
-				break;
-				}
+			 if(SysCntrl.power_stage == 51)
+				 switch(hUsbDeviceFS.dev_state){
+					 case USBD_STATE_CONFIGURED:
+						 UART_Con_Mash();
+
+					break;
+					}
 			  break;
 		  case 1:
 			  PowerSM();

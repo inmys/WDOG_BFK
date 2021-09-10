@@ -1,4 +1,5 @@
-#include "main.h"
+
+#include "structs.h"
 #include "POST.h"
 #include "memory.h"
 #include "i2c.h"
@@ -28,7 +29,7 @@ void POST(){
 				abuf[j] = 0;
 				bbuf[j] = 0;
 		}
-		sprintf(buf,"Flash %d: ",i);
+		sprintf(buf,"Flash %d: ",i+1);
 		UART_putstr(buf);
 
 		if(SPI_ReadID(i,&conf) == HAL_OK){
@@ -68,7 +69,7 @@ void POST(){
 			default:
 				sprintf(bbuf,"?");
 			}
-		sprintf(buf,"%sV %s status:%s\r\n",abuf, bbuf,CS_STASTUS_LABELS[(i)?SysCntrl.cs1:SysCntrl.cs0]);
+		sprintf(buf,"%sV %s\r\n",abuf, bbuf);
 		}
 		else
 			sprintf(buf,"FAILED\r\n");
