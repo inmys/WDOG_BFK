@@ -158,7 +158,6 @@ void Xmodem_SPI(){
 				if(!SysCntrl.TryCounter) {
 					SysCntrl.XmodemMode = 0;
 					UART_putstrln("Timeout...");
-					console.cmdStage = 0;
 				}
 				else {
 					SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
@@ -205,7 +204,6 @@ void Xmodem_SPI(){
 						UART_SendByte(0x06); // ACK
 						SysCntrl.XmodemState = XMODEM_STATE_INIT;
 						SysCntrl.XmodemMode = 0;
-						console.cmdStage = 0;
 						DisableSPI();
 					}  else if(bt == 0x18) {
 						UART_SendByte(0x06); // ACK

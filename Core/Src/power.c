@@ -12,7 +12,7 @@
 int BootMenu();
 
 void PowerSM() {
-
+	char buf[16] = {0};
 	if(SysCntrl.PowerTimer>0)
 		SysCntrl.PowerTimer--;
 	else
@@ -23,6 +23,9 @@ void PowerSM() {
 		case 100:
 			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
 			ClrI2C_Mask(0b11111111);
+			if(BootMenu())
+				SysCntrl.power_stage = 9;
+			break;
 		case 0:
 			 if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
 				 SysCntrl.BootFlash = SysCntrl.MainFlash;
@@ -43,11 +46,10 @@ void PowerSM() {
 		case 1:
 			//if(((SysCntrl.pwrbtn==1)|| (SysCntrl.PowerState==1)) && (SysCntrl.power_stage == 100))
 			//	SysCntrl.power_stage = 0;
-			if(BootMenu())
+			if(SysCntrl.PowerState || BootMenu())
 				SysCntrl.power_stage = 9;
 		break;
 		case 9:
-
 			 if(SysCntrl.BootFlash){
 				  SetI2C_Mask(FLASH_EN_1);
 				  ClrI2C_Mask(FLASH_EN_0);
@@ -100,11 +102,13 @@ void PowerSM() {
 			if(SysCntrl.pwrbtn){
 				SysCntrl.power_stage = 100;
 				SysCntrl.PowerTimer = 500;
+
+				// SysCntrl.PowerState = 0; Нужно ли оно здесь?
 			}
 		break;
 		// State: CPU is on & requested soft reset
 		case 41:
-			SysCntrl.PowerTimer  = 5000;
+			SysCntrl.PowerTimer  = 500;
 			SysCntrl.power_stage = 21;
 		break;
 		// initiating hard reset
@@ -184,7 +188,6 @@ void checkPowerLevels(uint8_t output){
 		UART_putstr(buf);
 	}
 
-
 	pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
 	if((pinState&0b00000001)!=SysCntrl.stmbootsel){
 		pinState = debouncer(STMBOOTSEL_PIN);
@@ -201,25 +204,28 @@ void checkPowerLevels(uint8_t output){
 
 
 
-uint8_t confirm(){
-	refreshConsoleS();
-	UART_putstr("Press \"Y\" to confirm");
-	while(!console.cmd_flag) userInput(1);
-	if((!strcmp(console.buf,"Y")) || (!strcmp(console.buf,"y")))
-		return 1;
-	return 0;
-}
+//uint8_t confirm(){
+//	refreshConsoleBuffer();
+//	UART_putstr("Press \"Y\" to confirm");
+//	while(!console.cmd_flag) userInput(1);
+//	if((!strcmp(console.buf,"Y")) || (!strcmp(console.buf,"y")))
+//		return 1;
+//	return 0;
+//}
 
 int BootMenu(){
 	uint8_t i,result = 0;
 	clearUartConsole();
+
 	UART_putstrln(WELCOME_SCREEN);
 	memoryMenu();
 	UART_putstr("CPU FW status:");
 	UART_putstrln(CS_STASTUS_LABELS[SysCntrl.FWStatus]);
 	for(i=0;i<10;i++)
 		UART_putstrln(menu[i]);
-	refreshConsoleS();
+	UART_putstr(">>");
+
+	refreshConsoleBuffer();
 	while(!console.cmd_flag) userInput(0);
 	uint8_t cmd = atoi(console.buf)-1;
 	switch(cmd){
@@ -277,7 +283,7 @@ int BootMenu(){
 	break;
 
 	}
-	refreshConsoleS();
+	refreshConsoleBuffer();
 	return result;
 }
 

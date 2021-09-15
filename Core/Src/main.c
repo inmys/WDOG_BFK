@@ -24,7 +24,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "i2c.h"
+#include "i2cSlave.h"
 #include "usbd_cdc_if.h"
+#include "stm32f0xx_hal_i2c.h"
 #include "memory.h"
 #include "POST.h"
 #include "power.h"
@@ -202,52 +204,63 @@ void userInput(uint8_t anykey){
 	}while(console.result && (!console.cmd_flag));
 }
 
-void refreshConsoleS(){
+void refreshConsoleBuffer(){
 	uint8_t i;
 	for(i=0;i<UART_BUF_SIZE;i++)
 		console.buf[i] = 0;
+
 	console.cmd_flag = 0;
 	//console.result = 0;
 	console.idx = 0;
 //	memset(&console,0,sizeof(console));
 }
 
-char *clr = "\e[3J";
 void clearUartConsole(){
 	// temp way
-	while(CDC_Transmit_FS((uint8_t*)clr,strlen(clr)) != USBD_OK);
+	//while(CDC_Transmit_FS((uint8_t*)"\e[3J",strlen("\e[3J")) != USBD_OK);
+	//UART_putstrln("\x1B[2J\x1B[H"); //"\x1B[2J\x1B[H"
+	UART_putstrln("\033[2J");
+
 }
 
 void UART_Con_Mash(){
 	char buf[16];
+	uint8_t t;
 	userInput(0);
 	if(console.cmd_flag){
+
 		if(!strcmp(console.buf,"help")){
 			UART_putstrln("ping!");
+		}
+		else
+		if(!strcmp(console.buf,"lvl")){
+			sprintf(buf,"I2C pins: %u %u",HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_7),HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_6));
+			UART_putstrln(buf);
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
 			SysCntrl.power_stage = 41;
 			UART_putstrln("CPU restarted...");
-			refreshConsoleS();
-			UART_putstrln(0);
+			refreshConsoleBuffer();
+			//UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"autoboot")){
+
 			SysCntrl.PowerState =(SysCntrl.PowerState)?0:1;
 			writeConfig();
 		}
 		else
 		if(!strcmp(console.buf,"poweroff")){
 			SysCntrl.power_stage = 100;
+			//SysCntrl.PowerState = (SysCntrl.PowerState)?0:1;;
 			UART_putstrln("CPU turn off...");
-			refreshConsoleS();
+			refreshConsoleBuffer();
 			UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"xmodem")){
 			UART_putstrln("Start XMODEM");
-			console.cmdStage = 100;
 		}
 		else
 		if(!strcmp(console.buf,"dump1")){
@@ -266,27 +279,33 @@ void UART_Con_Mash(){
 		else
 		if(!strcmp(console.buf,"post")){
 			POST();
-			console.cmdStage = 6;
 		}
 		else
 		if(!strcmp(console.buf,"power")){
 			checkPowerLevels(1);
-			console.cmdStage = 6;
 		}
 		else
 		if(!strcmp(console.buf,"mm")){
 			memoryMenu(1);
-			console.cmdStage = 6;
 		}
 		else
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);
 			UART_putstrln(buf);
-			console.cmdStage = 7;
 		}
 		else
-			UART_putstrln("Unknown command");
-		refreshConsoleS();
+		if(strcmp(console.buf,"")){
+			//UART_putstrln("Unknown command: ");
+			UART_putstr("Unknown command: ");
+			for(t=0;t<16;t++){
+				sprintf(buf,"%d ",console.buf[t]);
+				UART_putstr(buf);
+			}
+		}
+		UART_putstrln(0);
+		UART_putstr(">>");
+		refreshConsoleBuffer();
+
 	}
 
 }
@@ -307,11 +326,11 @@ return 'X';
 }
 
 
-void printBin(uint8_t bin){
-	char buf[23] = {0};
-	sprintf(buf,"0b%d%d%d%d%d%d%d%d",(bin&(1<<7))?1:0,(bin&(1<<6))?1:0,(bin&(1<<5))?1:0,(bin&(1<<4))?1:0,(bin&(1<<3))?1:0,(bin&(1<<2))?1:0,(bin&(1<<1))?1:0,(bin&(1<<0))?1:0);
-	UART_putstrln(buf);
-}
+//void printBin(uint8_t bin){
+//	char buf[23] = {0};
+//	sprintf(buf,"0b%d%d%d%d%d%d%d%d",(bin&(1<<7))?1:0,(bin&(1<<6))?1:0,(bin&(1<<5))?1:0,(bin&(1<<4))?1:0,(bin&(1<<3))?1:0,(bin&(1<<2))?1:0,(bin&(1<<1))?1:0,(bin&(1<<0))?1:0);
+//	UART_putstrln(buf);
+//}
 
 
 
@@ -326,10 +345,8 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-
-	int i;
   /* USER CODE END 1 */
-
+	char buf[12];
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -351,14 +368,12 @@ int main(void)
   SysCntrl.i2c_bt[1] = 0;
   SysCntrl.rx_head = 0;
   SysCntrl.rx_tail = 0;
-  refreshConsoleS();
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-  char buf[10];
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -376,16 +391,17 @@ int main(void)
   SysCntrl.i2c_bt[0] = 0x3;
   SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,SysCntrl.i2c_bt,2,1); // All outputs
   SysCntrl.i2c_bt[0] = 0x1;
-
+  //HAL_I2C_EnableListen_IT(&hi2c1);
+  //HAL_I2C_Slave_Receive_IT();
   SPI_Reset(0);
   SPI_Reset(1);
 
-
   USB_EnableGlobalInt(&hUsbDeviceFS);
+  refreshConsoleBuffer();
 
-
-
-
+  uint8_t i2cGet[3];
+  uint8_t b = 228;
+  uint8_t k = 0;
   DisableSPI();
 
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
@@ -408,7 +424,6 @@ int main(void)
 				 switch(hUsbDeviceFS.dev_state){
 					 case USBD_STATE_CONFIGURED:
 						 UART_Con_Mash();
-
 					break;
 					}
 			  break;
@@ -416,12 +431,21 @@ int main(void)
 			  PowerSM();
 			  break;
 		  case 2:
-			  break;
+			  if ((__HAL_I2C_GET_FLAG(&hi2c1, I2C_ISR_ADDR) == SET)
+				 && (__HAL_I2C_GET_FLAG(&hi2c1, I2C_ISR_BUSY) == SET)
+				 && (__HAL_I2C_GET_FLAG(&hi2c1, I2C_ISR_DIR) == SET)){
+				  hi2c1.Instance->CR2 &= ~I2C_CR2_NACK;
+				  HAL_Delay(1);
+				  hi2c1.Instance->CR2 |= I2C_CR2_NACK;
+				  UART_putstrln("Here");
+				  hi2c1.Instance->CR1 &= ~I2C_CR1_PE;
+				  HAL_Delay(1);
+				  hi2c1.Instance->CR1 |=  I2C_CR1_PE;
+			  }
 		  case 3:
 			checkPowerLevels(0);
 			  break;
 		  }
-
 	  }
 
   }
@@ -544,7 +568,7 @@ static void MX_I2C1_Init(void)
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
   hi2c1.Init.Timing = 0x2000090E;
-  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.OwnAddress1 = 52;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -684,7 +708,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
 /* USER CODE END 4 */
 
 /**
@@ -719,6 +742,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
+	UART_putstrln("GOTCHA ERROR");
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)

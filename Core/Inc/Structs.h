@@ -12,7 +12,7 @@
 
 struct SSysCntrl{
 	uint8_t power_stage;
-	uint8_t PowerTimer;
+	uint16_t PowerTimer;
 	// power subsystem signal values (see POWER SUBSYSTEM SIGNALS in power header)
 	uint8_t i2c_bt[2];
 	uint8_t active_cs;
@@ -81,15 +81,6 @@ struct SSysCntrl{
 struct SConsole{
 	uint8_t idx;
 	uint8_t buf[UART_BUF_SIZE];
-	uint8_t buf1[32];
-	// cmdStage:
-	// 0 print menu
-	// 1 wait user input
-	// 3 print prompt
-	// 4 wait confirm prompt
-	// 5 execute
-	// 6 wait user result
-	uint16_t cmdStage;
 	uint8_t cmd_flag;
 	uint8_t result;
 	uint8_t cmdCode;

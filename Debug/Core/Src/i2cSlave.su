@@ -1,2 +1,0 @@
-i2cSlave.c:10:6:initReg	0	static
-i2cSlave.c:17:6:updateReg	0	static

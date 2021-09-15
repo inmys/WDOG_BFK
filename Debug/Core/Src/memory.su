@@ -6,8 +6,8 @@ memory.c:48:6:Flash_PageWrite	24	static
 memory.c:99:6:SPI_Reset	8	static
 memory.c:107:9:SPI_ReadID	32	static
 memory.c:133:6:Xmodem_SPI	32	static
-memory.c:228:6:Xmodem_Init	8	static
-memory.c:241:6:FlashDump	24	static
-memory.c:269:6:memoryMenu	56	static
-memory.c:288:6:writeConfig	32	static
-memory.c:304:6:readConfig	0	static
+memory.c:226:6:Xmodem_Init	8	static
+memory.c:239:6:FlashDump	24	static
+memory.c:267:6:memoryMenu	56	static
+memory.c:286:6:writeConfig	32	static
+memory.c:302:6:readConfig	0	static
