@@ -9,11 +9,10 @@
 typedef unsigned char uint8_t ;
 #ifndef INC_I2CSLAVE_H_
 #define INC_I2CSLAVE_H_
+#include "Structs.h"
 
-extern short int portConf;
+void i2cSM();
 
-#define COMPOSE_OUTPUT_REG 0xFD
 
-void initReg();
 
 #endif /* INC_I2CSLAVE_H_ */

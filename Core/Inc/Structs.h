@@ -96,5 +96,22 @@ enum CS_STASTUS{
 	RESERVED = 0b11
 };
 
+struct Si2c{
+	union{
+		uint8_t config;
+		struct{
+			// States
+			// 1 - preparing data to be sent
+			// 2 - sending
+
+			// 3 - preparing data to be read
+			// 4 - reading
+			uint8_t state:3;
+			uint8_t bufIdx:2;
+		};
+	};
+	uint8_t address;
+	uint16_t registers[3];
+}hi2c;
 
 #endif /* SRC_STRUCTS_H_ */

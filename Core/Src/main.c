@@ -174,30 +174,35 @@ int ReadUartNonBlock(uint8_t *buf,int size) {
 
 void userInput(uint8_t anykey){
 	uint8_t bt;
+	char buf[4] = {0};
 	do{
 		console.result = ReadUartNonBlock(&bt, 1);
 		if(console.result) {
+
 			if(anykey)
 				console.cmd_flag = 1;
-			if(bt == 0x8){ //0x8 - asci backspace
+
+			switch(bt){
+			case 127:
 				UART_SendByte(0x8);
 				UART_SendByte(0x20); //0x20 - asci space
 				UART_SendByte(0x8);
 
-				console.buf[--console.idx] = 0;
-			}
-			else
-				if(bt == '\n')
-					continue;
-			else{
+				console.buf[console.idx] = 0;
+				console.idx--;
+				bt = 0;
+				break;
+			case '\n':
+				continue;
+				break;
+			case '\r':
+				console.buf[console.idx++] = 0;
+				console.cmd_flag = 1;
+			default:
+				console.buf[console.idx++] = bt;
 				UART_SendByte(bt);
-				if(bt == '\r'){
-					console.buf[console.idx++] = 0;
-					console.cmd_flag = 1;
-				}else{
-					console.buf[console.idx++] = bt;
-				}
 			}
+
 			if(console.idx >= UART_BUF_SIZE) console.idx = 0;
 		}
 
@@ -259,10 +264,6 @@ void UART_Con_Mash(){
 			UART_putstrln(0);
 		}
 		else
-		if(!strcmp(console.buf,"xmodem")){
-			UART_putstrln("Start XMODEM");
-		}
-		else
 		if(!strcmp(console.buf,"dump1")){
 			EnableSPI();
 			FlashDump(1);
@@ -289,6 +290,11 @@ void UART_Con_Mash(){
 			memoryMenu(1);
 		}
 		else
+		if(!strcmp(console.buf,"i2cs")){
+			sprintf(buf,"i2c state:%d register:%d",hi2c.state,hi2c.address);
+			UART_putstrln(buf);
+		}
+		else
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);
 			UART_putstrln(buf);
@@ -297,10 +303,6 @@ void UART_Con_Mash(){
 		if(strcmp(console.buf,"")){
 			//UART_putstrln("Unknown command: ");
 			UART_putstr("Unknown command: ");
-			for(t=0;t<16;t++){
-				sprintf(buf,"%d ",console.buf[t]);
-				UART_putstr(buf);
-			}
 		}
 		UART_putstrln(0);
 		UART_putstr(">>");
@@ -331,7 +333,6 @@ return 'X';
 //	sprintf(buf,"0b%d%d%d%d%d%d%d%d",(bin&(1<<7))?1:0,(bin&(1<<6))?1:0,(bin&(1<<5))?1:0,(bin&(1<<4))?1:0,(bin&(1<<3))?1:0,(bin&(1<<2))?1:0,(bin&(1<<1))?1:0,(bin&(1<<0))?1:0);
 //	UART_putstrln(buf);
 //}
-
 
 
 /* USER CODE END 0 */
@@ -368,6 +369,10 @@ int main(void)
   SysCntrl.i2c_bt[1] = 0;
   SysCntrl.rx_head = 0;
   SysCntrl.rx_tail = 0;
+  hi2c.registers[0] = 0xfd;
+  hi2c.registers[1] = 0xfaf;
+  hi2c.registers[2] = 0x31;
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -391,19 +396,15 @@ int main(void)
   SysCntrl.i2c_bt[0] = 0x3;
   SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,SysCntrl.i2c_bt,2,1); // All outputs
   SysCntrl.i2c_bt[0] = 0x1;
-  //HAL_I2C_EnableListen_IT(&hi2c1);
-  //HAL_I2C_Slave_Receive_IT();
+
   SPI_Reset(0);
   SPI_Reset(1);
-
+  hi2c.state = 0;
+  hi2c.bufIdx = 0;
   USB_EnableGlobalInt(&hUsbDeviceFS);
   refreshConsoleBuffer();
-
-  uint8_t i2cGet[3];
-  uint8_t b = 228;
-  uint8_t k = 0;
   DisableSPI();
-
+  clearHi2c();
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
 
   /* USER CODE END 2 */
@@ -416,6 +417,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  asm("nop");
+
 	  if(SysCntrl.TimerTick) {
 		  SysCntrl.TimerTick = 0;
 		  switch(SysCntrl.MS_counter % 10) {
@@ -431,17 +433,8 @@ int main(void)
 			  PowerSM();
 			  break;
 		  case 2:
-			  if ((__HAL_I2C_GET_FLAG(&hi2c1, I2C_ISR_ADDR) == SET)
-				 && (__HAL_I2C_GET_FLAG(&hi2c1, I2C_ISR_BUSY) == SET)
-				 && (__HAL_I2C_GET_FLAG(&hi2c1, I2C_ISR_DIR) == SET)){
-				  hi2c1.Instance->CR2 &= ~I2C_CR2_NACK;
-				  HAL_Delay(1);
-				  hi2c1.Instance->CR2 |= I2C_CR2_NACK;
-				  UART_putstrln("Here");
-				  hi2c1.Instance->CR1 &= ~I2C_CR1_PE;
-				  HAL_Delay(1);
-				  hi2c1.Instance->CR1 |=  I2C_CR1_PE;
-			  }
+			  i2cSM();
+
 		  case 3:
 			checkPowerLevels(0);
 			  break;
@@ -575,6 +568,8 @@ static void MX_I2C1_Init(void)
   hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
   hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+
+
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
