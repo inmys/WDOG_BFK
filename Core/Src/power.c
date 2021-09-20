@@ -16,7 +16,7 @@ void PowerSM() {
 	if(SysCntrl.PowerTimer>0)
 		SysCntrl.PowerTimer--;
 	else
-		// 1 powerTier = 10ms
+		// 1 powerTick = 10ms
 		switch(SysCntrl.power_stage) {
 		// State: CPU is turned off & power is off
 		//CPU is turned off & is not planing to going on

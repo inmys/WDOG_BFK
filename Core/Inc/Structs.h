@@ -57,7 +57,7 @@ struct SSysCntrl{
 	};
 
 	union{
-		uint8_t IOStatus;
+		uint16_t IOStatus;
 		struct{
 			uint8_t pgin:1;
 			uint8_t pwrbtn:1;
@@ -69,6 +69,7 @@ struct SSysCntrl{
 			uint8_t bootloaderMode:1; // 0/1
 		};
 	};
+	uint16_t WatchdogTimer;
 }SysCntrl;
 
 

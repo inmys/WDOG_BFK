@@ -13,9 +13,7 @@
 uint16_t readWord();
 void writeWord(uint16_t);
 
-
-
-
+uint8_t I2C_Slave_Registers[3];
 
 
 
@@ -42,6 +40,7 @@ void i2cSM(){
 		case 2:
 			
 			switch(hi2c.address){
+				// Input Port Registers
 				case 0:
 					byte = I2C_RREG0;
 				break;
@@ -51,8 +50,15 @@ void i2cSM(){
 				case 2:
 					byte = I2C_RREG2;
 				break;
+				// Configuration Registers
+				case 12:
+				case 13:
+				case 14:
+					byte = I2C_Slave_Registers[hi2c.address-12];
+				break;
+				
 				default:
-					byte = 0xfaf;
+					byte = 0xad;
 				break;
 			}
 			writeWord(byte);
@@ -65,7 +71,22 @@ void i2cSM(){
 			hi2c.state = 4;
 			break;
 		case 4:
-			hi2c.registers[hi2c.address] = readWord();
+			byte = readWord();
+			switch(hi2c.address){
+				// Input Port Registers
+				case 0:
+				// Configuration Registers
+				case 4:
+					SysCntrl.bootloaderMode = (byte&(1<<I2C_BOOTLDR_POS))?1:0;
+					SysCntrl.stmbootsel = byte&(1<<I2C_BOOTPIN_POS))?1:0;
+					SysCntrl.Watchdog = (byte&(1<<I2C_WDOG_POS))?1:0;
+					SysCntrl.intEn = (byte&(1<<I2C_INTEN_POS))?1:0;
+				break;
+				
+				default:
+					byte = 0xad;
+				break;
+			}
 			hi2c.state = 5;
 		break;
 		case 5:

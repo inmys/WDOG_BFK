@@ -372,7 +372,7 @@ int main(void)
   hi2c.registers[0] = 0xfd;
   hi2c.registers[1] = 0xfaf;
   hi2c.registers[2] = 0x31;
-
+  SysCntrl.WatchdogTimer = 0
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -434,10 +434,11 @@ int main(void)
 			  break;
 		  case 2:
 			  i2cSM();
-
 		  case 3:
 			checkPowerLevels(0);
 			  break;
+      case 4:
+        SysCntrl.WatchdogTimer++;
 		  }
 	  }
 
