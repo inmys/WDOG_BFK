@@ -83,6 +83,14 @@ void i2cSM(){
 					SysCntrl.intEn = (byte&(1<<I2C_INTEN_POS))?1:0;
 				break;
 				
+				
+				case 12:
+				case 13:
+				case 14:
+					I2C_Slave_Registers[hi2c.address-12] = byte;
+				break;
+				
+				
 				default:
 					byte = 0xad;
 				break;
