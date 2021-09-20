@@ -40,11 +40,11 @@
 
 
 #define HW_VERSION "1.0"
-#define FW_VERMJR 0
-#define FW_VERMNR 5 
+#define FW_VERMJR 2
+#define FW_VERMNR 8
 
 
-#define WELCOME_SCREEN "INMYS MS-uQ7-BKLT\r\nHW ver.: "HW_VERSION"\r\nFW ver.: "STR(FW_VERMJR)"."FW_VERMNR
+#define WELCOME_SCREEN "INMYS MS-uQ7-BKLT\r\nHW ver.: "HW_VERSION"\r\nFW ver.: "STR(FW_VERMJR)"."STR(FW_VERMNR)
 
 extern const char *CS_STASTUS_LABELS[];
 extern const char** menu[];

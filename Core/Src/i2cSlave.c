@@ -51,8 +51,11 @@ void i2cSM(){
 				case 2:
 					byte = I2C_RREG2;
 				break;
+				default:
+					byte = 0xfaf;
+				break;
 			}
-			writeWord(hi2c.registers[hi2c.address]);
+			writeWord(byte);
 			//writeWord(MazzyStar[hi2c.address]);
 			hi2c.state = 5;
 			break;
@@ -64,7 +67,6 @@ void i2cSM(){
 		case 4:
 			hi2c.registers[hi2c.address] = readWord();
 			hi2c.state = 5;
-		  UART_putstrln("Gotcha");
 		break;
 		case 5:
 			clearHi2c();
