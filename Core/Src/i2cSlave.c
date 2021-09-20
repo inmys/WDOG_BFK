@@ -21,7 +21,7 @@ void writeWord(uint16_t);
 
 void i2cSM(){
 	 //char *MazzyStar = "I wanna hold the hand inside you  I wanna take the breath that's true  I look to you and I see nothing  I look to you to see the truth  You live your life, you go in shadows  You'll come apart and you'll go black  Some kind of night into your darkness  Colors your eyes with what's not there";
-
+	uint8_t byte;
 	if ((I2C1->ISR & I2C_ISR_ADDR) == I2C_ISR_ADDR){
 	   I2C1->ICR |= I2C_ICR_ADDRCF;
 	   if ((I2C1->ISR & I2C_ISR_DIR) == I2C_ISR_DIR){
@@ -40,6 +40,18 @@ void i2cSM(){
 			hi2c.state = 2;
 		break;
 		case 2:
+			
+			switch(hi2c.address){
+				case 0:
+					byte = I2C_RREG0;
+				break;
+				case 1:
+					byte = I2C_RREG1;
+				break;
+				case 2:
+					byte = I2C_RREG2;
+				break;
+			}
 			writeWord(hi2c.registers[hi2c.address]);
 			//writeWord(MazzyStar[hi2c.address]);
 			hi2c.state = 5;

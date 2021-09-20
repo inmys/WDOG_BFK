@@ -41,15 +41,6 @@ struct SSysCntrl{
 	uint16_t MS_counter;
 	// Memory configuration
 
-
-	union{
-		uint8_t TempInfo;
-		struct{
-			uint8_t BootFlash:1;
-			uint8_t Watchdog:1; //  0/1
-		};
-	};
-
 	union {
 		struct{
 		uint8_t SavedConfigH;
@@ -63,7 +54,7 @@ struct SSysCntrl{
 			uint8_t PowerState:1; // 0 - off by key / 1 - on
 			uint8_t Magic:5; // 10110 - OK
 			};
-		};
+	};
 
 	union{
 		uint8_t IOStatus;
@@ -72,7 +63,10 @@ struct SSysCntrl{
 			uint8_t pwrbtn:1;
 			uint8_t rstbtn:1;
 			uint8_t stmbootsel:1;
-
+			uint8_t BootFlash:1;
+			uint8_t Watchdog:1; //  0/1
+			uint8_t intEn:1;
+			uint8_t bootloaderMode:1; // 0/1
 		};
 	};
 }SysCntrl;

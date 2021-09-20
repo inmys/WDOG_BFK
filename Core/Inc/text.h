@@ -35,13 +35,16 @@
 #define UART_BUF_SIZE 32
 #define RX_BUF_SIZE (256)
 
+#define STR_LAYER(x) #x
+#define STR(x) STR_LAYER(x)
 
 
-
-#define WELCOME_SCREEN "INMYS MS-uQ7-BKLT\r\nHW ver.: "HW_VERSION"\r\nFW ver.: "FW_VERSION
 #define HW_VERSION "1.0"
-#define FW_VERSION "0.5"
+#define FW_VERMJR 0
+#define FW_VERMNR 5 
 
+
+#define WELCOME_SCREEN "INMYS MS-uQ7-BKLT\r\nHW ver.: "HW_VERSION"\r\nFW ver.: "STR(FW_VERMJR)"."FW_VERMNR
 
 extern const char *CS_STASTUS_LABELS[];
 extern const char** menu[];

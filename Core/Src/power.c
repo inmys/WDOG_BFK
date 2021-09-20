@@ -99,12 +99,8 @@ void PowerSM() {
 				SysCntrl.PowerTimer  = 40;
 				SysCntrl.power_stage = 41;
 			}
-			if(SysCntrl.pwrbtn){
-				SysCntrl.power_stage = 100;
-				SysCntrl.PowerTimer = 500;
-
-				// SysCntrl.PowerState = 0; Нужно ли оно здесь?
-			}
+			if(SysCntrl.pwrbtn)
+				SysCntrl.power_stage = 11;
 		break;
 		// State: CPU is on & requested soft reset
 		case 41:
@@ -118,7 +114,9 @@ void PowerSM() {
 			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 51;
 		break;
-
+		case 11:
+			SysCntrl.PowerTimer = 500;
+			SysCntrl.power_stage = 100;
 		}
 }
 
