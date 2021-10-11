@@ -1,4 +1,4 @@
-i2cSlave.c:79:10:readWord	0	static
-i2cSlave.c:85:6:writeWord	0	static
-i2cSlave.c:93:6:clearHi2c	0	static,ignoring_inline_asm
-i2cSlave.c:22:6:i2cSM	16	static
+i2cSlave.c:123:10:readWord	8	static
+i2cSlave.c:130:6:writeWord	0	static
+i2cSlave.c:138:6:clearHi2c	0	static,ignoring_inline_asm
+i2cSlave.c:28:6:i2cSM	56	static

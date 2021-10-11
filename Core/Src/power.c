@@ -12,7 +12,7 @@
 int BootMenu();
 
 void PowerSM() {
-	char buf[16] = {0};
+	char buf[32] = {0};
 	if(SysCntrl.PowerTimer>0)
 		SysCntrl.PowerTimer--;
 	else
@@ -89,18 +89,24 @@ void PowerSM() {
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 100;
 			SysCntrl.power_stage = 51;
+			SysCntrl.WatchdogTimer = 0;
 		break;
 		// State: CPU is on & power is on NORMAL STATE
 		case 51:
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
 			SysCntrl.PowerTimer  = 100;
-			if(SysCntrl.rstbtn){
-				SysCntrl.PowerTimer  = 40;
-				SysCntrl.power_stage = 41;
+			if(SysCntrl.WatchdogTimer > 5*100){ // 5 seconds
+				sprintf(buf,"Attention: 5 sec no response %u",SysCntrl.WatchdogTimer);
+				//UART_putstrln(buf);
+				;
 			}
-			if(SysCntrl.pwrbtn)
-				SysCntrl.power_stage = 11;
+			//if(SysCntrl.rstbtn){
+			//	SysCntrl.PowerTimer  = 40;
+			//	SysCntrl.power_stage = 41;
+			//}
+			//if(SysCntrl.pwrbtn)
+			//	SysCntrl.power_stage = 11;
 		break;
 		// State: CPU is on & requested soft reset
 		case 41:

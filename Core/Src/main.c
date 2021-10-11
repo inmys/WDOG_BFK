@@ -347,7 +347,7 @@ int main(void)
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* USER CODE END 1 */
-	char buf[12];
+	char buf[64];
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -372,7 +372,7 @@ int main(void)
   hi2c.registers[0] = 0xfd;
   hi2c.registers[1] = 0xfaf;
   hi2c.registers[2] = 0x31;
-  SysCntrl.WatchdogTimer = 0
+  SysCntrl.WatchdogTimer = 0;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -439,6 +439,8 @@ int main(void)
 			  break;
       case 4:
         SysCntrl.WatchdogTimer++;
+		//sprintf(buf,"Attention: 5 sec no response %u",SysCntrl.WatchdogTimer);
+		//UART_putstrln(buf);
 		  }
 	  }
 

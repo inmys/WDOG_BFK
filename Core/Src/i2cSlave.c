@@ -10,39 +10,55 @@
 #include "stm32f0xx_hal.h"
 #include "stm32f0xx_hal_i2c.h"
 
-uint16_t readWord();
-void writeWord(uint16_t);
+uint32_t readWord();
+void writeWord(uint8_t);
 
-uint8_t I2C_Slave_Registers[3];
+uint8_t confReg0;
 
+
+// 1 попадаем
+// байкал хочет записать
+// stm32 будет записывать
+
+// 2 попадаем
+// байкал хочет прочитать
+// stm32 будет писать
 
 
 void i2cSM(){
 	 //char *MazzyStar = "I wanna hold the hand inside you  I wanna take the breath that's true  I look to you and I see nothing  I look to you to see the truth  You live your life, you go in shadows  You'll come apart and you'll go black  Some kind of night into your darkness  Colors your eyes with what's not there";
 	uint8_t byte;
-	if ((I2C1->ISR & I2C_ISR_ADDR) == I2C_ISR_ADDR){
+	char buf[32];
+	if (((I2C1->ISR) & I2C_ISR_ADDR) == I2C_ISR_ADDR){
 	   I2C1->ICR |= I2C_ICR_ADDRCF;
 	   if ((I2C1->ISR & I2C_ISR_DIR) == I2C_ISR_DIR){
+
 		   I2C1->CR1 |= I2C_CR1_TXIE;
+		   hi2c.address = readWord();
 		   hi2c.state=1;
+	   }
+	   else{
+		   hi2c.state=3;
 		   hi2c.address = readWord();
 	   }
-	   else
-		   if(hi2c.state == 1)
-			   hi2c.state = 3;
 	}
 	else{
+		sprintf(buf,"state: %d",hi2c.state);
+		if(hi2c.state!=0)
+			UART_putstrln(buf);
 		switch(hi2c.state){
 		case 1:
-			UART_putstrln("STM->Baikal");
+			UART_putstrln("STM->Baikal"); //i2cget
 			hi2c.state = 2;
 		break;
 		case 2:
-			
+			hi2c.state = 5;
 			switch(hi2c.address){
 				// Input Port Registers
 				case 0:
 					byte = I2C_RREG0;
+					sprintf(buf,"DATA: %u",byte);
+					UART_putstrln(buf);
 				break;
 				case 1:
 					byte = I2C_RREG1;
@@ -52,9 +68,10 @@ void i2cSM(){
 				break;
 				// Configuration Registers
 				case 12:
+					byte = confReg0;
 				case 13:
 				case 14:
-					byte = I2C_Slave_Registers[hi2c.address-12];
+					byte = 0;
 				break;
 				
 				default:
@@ -63,11 +80,11 @@ void i2cSM(){
 			}
 			writeWord(byte);
 			//writeWord(MazzyStar[hi2c.address]);
-			hi2c.state = 5;
+
 			break;
 
 		case 3:
-			UART_putstrln("Baikal->STM");
+			UART_putstrln("Baikal->STM"); //i2cset
 			hi2c.state = 4;
 			break;
 		case 4:
@@ -76,23 +93,20 @@ void i2cSM(){
 				// Input Port Registers
 				case 0:
 				// Configuration Registers
-				case 4:
+				case 3:
 					SysCntrl.bootloaderMode = (byte&(1<<I2C_BOOTLDR_POS))?1:0;
-					SysCntrl.stmbootsel = byte&(1<<I2C_BOOTPIN_POS))?1:0;
-					SysCntrl.Watchdog = (byte&(1<<I2C_WDOG_POS))?1:0;
+					SysCntrl.stmbootsel = (byte&(1<<I2C_BOOTPIN_POS))?1:0;
+					if((byte&(1<<I2C_WDOG_POS))?1:0)
+						SysCntrl.WatchdogTimer = 0;
 					SysCntrl.intEn = (byte&(1<<I2C_INTEN_POS))?1:0;
 				break;
-				
-				
+				case 4:
 				case 12:
+					confReg0 = byte;
 				case 13:
 				case 14:
-					I2C_Slave_Registers[hi2c.address-12] = byte;
-				break;
-				
-				
+					break;
 				default:
-					byte = 0xad;
 				break;
 			}
 			hi2c.state = 5;
@@ -105,17 +119,18 @@ void i2cSM(){
 	}
 }
 
-uint16_t readWord(){
-	uint16_t word = 0;
-  if ((I2C1->ISR & I2C_ISR_RXNE) == I2C_ISR_RXNE)
+uint32_t readWord(){
+	uint32_t word = 0;
+	HAL_Delay(150);
+  if (((I2C1->ISR) & I2C_ISR_RXNE)==I2C_ISR_RXNE)
 	  word = I2C1->RXDR;
   return word;
 }
-void writeWord(uint16_t word){
-  if ((I2C1->ISR & I2C_ISR_TXIS) == I2C_ISR_TXIS){
+void writeWord(uint8_t word){
+	if ((I2C1->ISR & I2C_ISR_TXIS) == I2C_ISR_TXIS){
 	I2C1->CR1 &=~ I2C_CR1_TXIE;
 	I2C1->TXDR = word;
-  }
+	}
 }
 
 
