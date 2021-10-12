@@ -238,6 +238,10 @@ void UART_Con_Mash(){
 			UART_putstrln("ping!");
 		}
 		else
+		if(!strcmp(console.buf,"clear")){
+			UART_putstrln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+		}
+		else
 		if(!strcmp(console.buf,"lvl")){
 			sprintf(buf,"I2C pins: %u %u",HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_7),HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_6));
 			UART_putstrln(buf);
@@ -290,6 +294,11 @@ void UART_Con_Mash(){
 			memoryMenu(1);
 		}
 		else
+		if(!strcmp(console.buf,"wdog")){
+			sprintf(buf,"WDOG timer: %d",SysCntrl.WatchdogTimer);
+			UART_putstrln(buf);
+		}
+		else
 		if(!strcmp(console.buf,"i2cs")){
 			sprintf(buf,"i2c state:%d register:%d",hi2c.state,hi2c.address);
 			UART_putstrln(buf);
@@ -298,6 +307,12 @@ void UART_Con_Mash(){
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);
 			UART_putstrln(buf);
+		}
+		else
+		if(!strcmp(console.buf,"toggleMem")){
+			SysCntrl.BootFlash = ~SysCntrl.BootFlash;
+			SysCntrl.MainFlash = ~SysCntrl.MainFlash;
+			writeConfig();
 		}
 		else
 		if(strcmp(console.buf,"")){
@@ -434,11 +449,13 @@ int main(void)
 			  break;
 		  case 2:
 			  i2cSM();
+			  break;
 		  case 3:
 			checkPowerLevels(0);
-			  break;
-      case 4:
-        SysCntrl.WatchdogTimer++;
+			 break;
+		  case 4:
+			SysCntrl.WatchdogTimer++;
+			break;
 		//sprintf(buf,"Attention: 5 sec no response %u",SysCntrl.WatchdogTimer);
 		//UART_putstrln(buf);
 		  }

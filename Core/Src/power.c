@@ -96,10 +96,10 @@ void PowerSM() {
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
 			SysCntrl.PowerTimer  = 100;
-			if(SysCntrl.WatchdogTimer > 5*100){ // 5 seconds
-				sprintf(buf,"Attention: 5 sec no response %u",SysCntrl.WatchdogTimer);
-				//UART_putstrln(buf);
-				;
+			if(SysCntrl.WatchdogTimer > 5*100){ // 500 = 5 seconds
+//				UART_putstrln("Attention: 5 sec no response. CPU restarted");
+//				SysCntrl.power_stage = 41;
+				SysCntrl.WatchdogTimer = 0; //обязательно обнулить, иначе будет вечный перезапуск
 			}
 			//if(SysCntrl.rstbtn){
 			//	SysCntrl.PowerTimer  = 40;
