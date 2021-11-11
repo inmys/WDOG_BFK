@@ -27,6 +27,8 @@ void checkPowerLevels(uint8_t output);
 #define RSTBTN_PIN GPIOB, GPIO_PIN_4
 #define ALTBOOT_PIN  GPIOB, GPIO_PIN_5
 #define STMBOOTSEL_PIN GPIOB, GPIO_PIN_8
+#define CPU_INT GPIOA, GPIO_PIN_3
+
 
 #define PGIN       (1<<0)
 #define PWRBTN     (1<<1)

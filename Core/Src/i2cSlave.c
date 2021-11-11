@@ -15,7 +15,7 @@ void writeWord(uint8_t);
 
 uint8_t confReg0;
 
-
+void checkChange();
 // 1 попадаем
 // байкал хочет записать
 // stm32 будет записывать
@@ -29,6 +29,11 @@ void i2cSM(){
 	//char *MazzyStar = "I wanna hold the hand inside you  I wanna take the breath that's true  I look to you and I see nothing  I look to you to see the truth  You live your life, you go in shadows  You'll come apart and you'll go black  Some kind of night into your darkness  Colors your eyes with what's not there";
 	uint8_t byte;
 	char buf[16];
+
+
+	checkChange();
+
+
 	if (((I2C1->ISR) & I2C_ISR_ADDR) == I2C_ISR_ADDR){
 	   I2C1->ICR |= I2C_ICR_ADDRCF;
 	   if ((I2C1->ISR & I2C_ISR_DIR) == I2C_ISR_DIR){
@@ -55,6 +60,7 @@ void i2cSM(){
 		case 1:
 			UART_putstrln("STM->Baikal"); //i2cget
 			hi2c.state = 2;
+			HAL_GPIO_WritePin(CPU_INT,0);
 			break;
 		case 2:
 			hi2c.state = 5;
@@ -166,4 +172,18 @@ void clearHi2c(){
 	asm("nop");
 	asm("nop");
 	I2C1->CR1 |= I2C_CR1_PE;
+}
+
+void checkChange(){
+	uint8_t result = 0;
+	result|=hi2c.registers[0]^I2C_RREG0;
+	result|=hi2c.registers[1]^I2C_RREG1;
+	result|=hi2c.registers[2]^I2C_RREG2;
+
+	if(result>0){
+		hi2c.registers[0] = I2C_RREG0;
+		hi2c.registers[1] = I2C_RREG1;
+		hi2c.registers[2] = I2C_RREG2;
+		HAL_GPIO_WritePin(CPU_INT,1);
+	}
 }

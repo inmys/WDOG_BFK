@@ -103,10 +103,11 @@ struct Si2c{
 			// 4 - reading
 			uint8_t state:3;
 			uint8_t bufIdx:2;
+			uint8_t INT;
 		};
 	};
 	uint8_t address;
-	uint16_t registers[3];
+	uint8_t registers[3];
 }hi2c;
 
 #endif /* SRC_STRUCTS_H_ */
