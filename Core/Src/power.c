@@ -23,7 +23,7 @@ void PowerSM() {
 		case 100:
 			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
 			ClrI2C_Mask(0b11111111);
-			if(BootMenu())
+			if(BootMenu() || SysCntrl.pwrbtn)
 				SysCntrl.power_stage = 9;
 			break;
 		case 0:
@@ -89,6 +89,7 @@ void PowerSM() {
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 100;
 			SysCntrl.power_stage = 51;
+			SysCntrl.Watchdog = 1;
 			SysCntrl.WatchdogTimer = 0;
 		break;
 		// State: CPU is on & power is on NORMAL STATE
@@ -96,17 +97,17 @@ void PowerSM() {
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
 			SysCntrl.PowerTimer  = 100;
-			if(SysCntrl.WatchdogTimer > 5*100){ // 500 = 5 seconds
-//				UART_putstrln("Attention: 5 sec no response. CPU restarted");
-//				SysCntrl.power_stage = 41;
-				SysCntrl.WatchdogTimer = 0; //обязательно обнулить, иначе будет вечный перезапуск
+			if(SysCntrl.Watchdog && (SysCntrl.WatchdogTimer > 200*100)  ){ // 500 = 5 seconds
+				//UART_putstrln("Attention: 90 sec no response. CPU restarted");
+				SysCntrl.power_stage = 41;
+				SysCntrl.WatchdogTimer = 0;
 			}
-			//if(SysCntrl.rstbtn){
-			//	SysCntrl.PowerTimer  = 40;
-			//	SysCntrl.power_stage = 41;
-			//}
-			//if(SysCntrl.pwrbtn)
-			//	SysCntrl.power_stage = 11;
+			if(SysCntrl.rstbtn){
+				SysCntrl.PowerTimer  = 40;
+				SysCntrl.power_stage = 41;
+			}
+			if(SysCntrl.pwrbtn)
+				SysCntrl.power_stage = 11;
 		break;
 		// State: CPU is on & requested soft reset
 		case 41:

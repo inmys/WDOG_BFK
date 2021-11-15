@@ -67,9 +67,9 @@ struct SSysCntrl{
 			uint8_t Watchdog:1; //  0/1
 			uint8_t intEn:1;
 			uint8_t bootloaderMode:1; // 0/1
+			};
 		};
-	};
-	uint16_t WatchdogTimer;
+		uint16_t WatchdogTimer;
 }SysCntrl;
 
 

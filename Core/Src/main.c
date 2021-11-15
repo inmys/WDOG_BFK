@@ -232,6 +232,7 @@ void UART_Con_Mash(){
 	char buf[16];
 	uint8_t t;
 	userInput(0);
+	//UART_putstrln("HELLO FROM USB FIRWARE");
 	if(console.cmd_flag){
 
 		if(!strcmp(console.buf,"help")){
@@ -387,7 +388,6 @@ int main(void)
   hi2c.registers[0] = 0xfd;
   hi2c.registers[1] = 0xfaf;
   hi2c.registers[2] = 0x31;
-  SysCntrl.WatchdogTimer = 0;
   /* USER CODE END Init */
 
   /* Configure the system clock */
