@@ -1,5 +1,5 @@
 Core/Src/i2cSlave.o: ../Core/Src/i2cSlave.c ../Core/Inc/i2cSlave.h \
- ../Core/Inc/Structs.h ../Core/Inc/text.h \
+ ../Core/Inc/Structs.h ../Core/Inc/text.h ../Core/Inc/power.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h \
  ../Core/Inc/stm32f0xx_hal_conf.h \
  ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal_rcc.h \
@@ -40,6 +40,8 @@ Core/Src/i2cSlave.o: ../Core/Src/i2cSlave.c ../Core/Inc/i2cSlave.h \
 ../Core/Inc/Structs.h:
 
 ../Core/Inc/text.h:
+
+../Core/Inc/power.h:
 
 ../Drivers/STM32F0xx_HAL_Driver/Inc/stm32f0xx_hal.h:
 

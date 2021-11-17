@@ -374,12 +374,12 @@ int main(void)
   if(SysCntrl.Magic!=0b10110){
 	SysCntrl.MainFlash = 0;
 	SysCntrl.FWStatus = 0;
-	SysCntrl.Watchdog = 1;
+	SysCntrl.dog = 1;
 	SysCntrl.PowerState = 1;
 	SysCntrl.Magic = 0b10110;
 	writeConfig();
   }
-  SysCntrl.power_stage = 0;
+  SysCntrl.power_stage = 100;
   // GPIO extender address
   SysCntrl.i2c_bt[0] = 0x1;
   SysCntrl.i2c_bt[1] = 0;
@@ -420,6 +420,7 @@ int main(void)
   refreshConsoleBuffer();
   DisableSPI();
   clearHi2c();
+  uint16_t k = 0;
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
 
   /* USER CODE END 2 */
@@ -445,7 +446,10 @@ int main(void)
 					}
 			  break;
 		  case 1:
-			  PowerSM();
+			  if(SysCntrl.XmodemMode == 0){
+				 // UART_putstrln("IN !XmodemMode");
+				  PowerSM();
+			  }
 			  break;
 		  case 2:
 			  i2cSM();
@@ -456,8 +460,17 @@ int main(void)
 		  case 4:
 			SysCntrl.WatchdogTimer++;
 			break;
-		//sprintf(buf,"Attention: 5 sec no response %u",SysCntrl.WatchdogTimer);
-		//UART_putstrln(buf);
+		  case 5:
+			  if(SysCntrl.XmodemMode){
+				  Xmodem_SPI();
+			  }
+			  if(k++>1000){
+				  k = 0;
+
+					sprintf(buf,"state: %d %d %d",SysCntrl.power_stage,SysCntrl.XmodemMode,SysCntrl.XmodemState);
+					UART_putstrln(buf);
+			  }
+		  break;
 		  }
 	  }
 

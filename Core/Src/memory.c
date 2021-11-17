@@ -44,7 +44,7 @@ void SPI_PageRead(uint32_t spi_address, uint8_t *data, uint32_t len) {
 
 }
 
-//void SPI_PageWrite(uint32_t spi_address, uint8_t *data, uint32_t len) {
+
 void Flash_PageWrite() {
 	do{
 
@@ -112,12 +112,7 @@ uint8_t SPI_ReadID(uint8_t cs,struct memoryReport *data) {
 	SysCntrl.spi_buf_tx[3] = 0x0;
 	SysCntrl.spi_buf_tx[4] = 0x0;
 	uint8_t result = HAL_SPI_TransmitReceive(&hspi1, SysCntrl.spi_buf_tx, SysCntrl.spi_buf_rx, 5,HAL_MAX_DELAY);
-//	int i;
-//	char buf[30];
-//	for(i = 0; i < 5; i++){
-//		sprintf(buf, "spi_buf_rx(%d): %x", i, SysCntrl.spi_buf_rx[i]);
-//		UART_putstrln(buf);
-//	}
+
 	if(result == HAL_OK && data!=NULL){
 			data->ManufacturerID = SysCntrl.spi_buf_rx[1];
 			data->MemoryType = SysCntrl.spi_buf_rx[2];
@@ -133,8 +128,8 @@ extern struct SConsole console;
 void Xmodem_SPI(){
 	uint8_t bt;
 	int result,i;
-
-	if(SysCntrl.TimerCnt)SysCntrl.TimerCnt--;
+	char buf[10];
+	if(SysCntrl.TimerCnt) SysCntrl.TimerCnt--;
 
 	switch(SysCntrl.XmodemState) {
 	case XMODEM_STATE_INIT:
@@ -188,11 +183,16 @@ void Xmodem_SPI(){
 	case XMODEM_STATE_S1:
 		result = ReadUartNonBlock(&bt,1);
 		if(result>0){
+			sprintf(buf,"EXIT %d",SysCntrl.SPI_page_idx);
+			UART_putstrln(buf);
 			if((bt == 0x01)) {
 					SysCntrl.XmodemState = XMODEM_STATE_S0;
 					SysCntrl.X_idx = 0;
 					SysCntrl.bt_count = 128+4;
-					} else if(bt == 0x04) {
+					}
+			else
+				if(bt == 0x04) {
+					// Все страницы зашили
 						UART_SendByte(0x06); // ACK
 						if(SysCntrl.SPI_page_idx == 128) {
 							Flash_PageWrite();
@@ -200,19 +200,25 @@ void Xmodem_SPI(){
 							SysCntrl.XmodemMode = 0;
 							DisableSPI();
 							}
-					} else if(bt == 0x17) {
+				}
+				else
+					if(bt == 0x17) {
 						UART_SendByte(0x06); // ACK
 						SysCntrl.XmodemState = XMODEM_STATE_INIT;
 						SysCntrl.XmodemMode = 0;
 						DisableSPI();
-					}  else if(bt == 0x18) {
-						UART_SendByte(0x06); // ACK
-						UART_SendByte(0x06); // ACK
-						SysCntrl.XmodemState = XMODEM_STATE_INIT;
-						SysCntrl.XmodemMode = 0;
-						DisableSPI();
-						UART_putstr("Canceled\n\r");
+						UART_putstrln("Exited XMODEM BB");
 					}
+					else
+						if(bt == 0x18) {
+							UART_SendByte(0x06); // ACK
+							UART_SendByte(0x06); // ACK
+							SysCntrl.XmodemState = XMODEM_STATE_INIT;
+							SysCntrl.XmodemMode = 0;
+							DisableSPI();
+
+							UART_putstrln("Canceled");
+						}
 			}
 
 		break;

@@ -11,11 +11,11 @@ main.c:162:5:ReadUartNonBlock	20	static
 main.c:175:6:userInput	24	static
 main.c:212:6:refreshConsoleBuffer	0	static
 main.c:223:6:clearUartConsole	8	static
-main.c:335:9:ByteToHEX	0	static
-main.c:736:6:HAL_TIM_PeriodElapsedCallback	8	static
-main.c:757:6:Error_Handler	8	static,ignoring_inline_asm
-main.c:620:13:MX_SPI1_Init	8	static
+main.c:336:9:ByteToHEX	0	static
+main.c:749:6:HAL_TIM_PeriodElapsedCallback	8	static
+main.c:770:6:Error_Handler	8	static,ignoring_inline_asm
+main.c:633:13:MX_SPI1_Init	8	static
 main.c:75:6:EnableSPI	40	static
 main.c:231:6:UART_Con_Mash	32	static
-main.c:472:6:SystemClock_Config	104	static
-main.c:359:5:main	64	static,ignoring_inline_asm
+main.c:485:6:SystemClock_Config	104	static
+main.c:360:5:main	112	static,ignoring_inline_asm

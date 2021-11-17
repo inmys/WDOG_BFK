@@ -23,8 +23,12 @@ void PowerSM() {
 		case 100:
 			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
 			ClrI2C_Mask(0b11111111);
+			//UART_putstrln("IN STAGE 100");
+
+			//AUTOBOOT HERE!!!!
+			//if(BootMenu() || SysCntrl.pwrbtn || SysCntrl.PowerState)
 			if(BootMenu() || SysCntrl.pwrbtn)
-				SysCntrl.power_stage = 9;
+				SysCntrl.power_stage = 0;
 			break;
 		case 0:
 			 if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
@@ -41,13 +45,7 @@ void PowerSM() {
 				 }
 				 //writeConfig();
 			 }
-			 SysCntrl.power_stage = 1;
-		break;
-		case 1:
-			//if(((SysCntrl.pwrbtn==1)|| (SysCntrl.PowerState==1)) && (SysCntrl.power_stage == 100))
-			//	SysCntrl.power_stage = 0;
-			if(SysCntrl.PowerState || BootMenu())
-				SysCntrl.power_stage = 9;
+			 SysCntrl.power_stage = 9;
 		break;
 		case 9:
 			 if(SysCntrl.BootFlash){
@@ -89,7 +87,9 @@ void PowerSM() {
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 100;
 			SysCntrl.power_stage = 51;
-			SysCntrl.Watchdog = 1;
+			//WATHCDOG HARD OFF HERE!!!
+			SysCntrl.Watchdog = 0;
+			SysCntrl.Watchdog = 0;
 			SysCntrl.WatchdogTimer = 0;
 		break;
 		// State: CPU is on & power is on NORMAL STATE
@@ -208,16 +208,6 @@ void checkPowerLevels(uint8_t output){
 
 
 
-
-//uint8_t confirm(){
-//	refreshConsoleBuffer();
-//	UART_putstr("Press \"Y\" to confirm");
-//	while(!console.cmd_flag) userInput(1);
-//	if((!strcmp(console.buf,"Y")) || (!strcmp(console.buf,"y")))
-//		return 1;
-//	return 0;
-//}
-
 int BootMenu(){
 	uint8_t i,result = 0;
 	clearUartConsole();
@@ -247,7 +237,6 @@ int BootMenu(){
 		else{
 			SysCntrl.active_cs = 0;
 			Xmodem_Init();
-			while(SysCntrl.XmodemMode) Xmodem_SPI();
 		}
 	break;
 	case 2:
@@ -259,7 +248,6 @@ int BootMenu(){
 		else{
 			SysCntrl.active_cs = 1;
 			Xmodem_Init();
-			while(SysCntrl.XmodemMode) Xmodem_SPI();
 		}
 	break;
 	case 3:
