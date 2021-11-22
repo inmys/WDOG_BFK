@@ -60,8 +60,8 @@ SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
-#define EMPTY_SYM " "
 extern USBD_HandleTypeDef hUsbDeviceFS;
+extern const char** SWT[];
 I2C_handler si2c1;
 /* USER CODE END PV */
 
@@ -243,8 +243,8 @@ void UART_Con_Mash(){
 	userInput(0);
 	if(console.cmd_flag){
 		UART_putstrln(1,NULL);
-		if(!strcmp(console.buf,"help")){
-			UART_putstrln(1,"ping!");
+		if(!strcmp(console.buf,"ping")){
+			UART_putstrln(1,"pong!");
 		}
 		else
 		if(!strcmp(console.buf,"clear")){
@@ -264,8 +264,9 @@ void UART_Con_Mash(){
 		}
 		else
 		if(!strcmp(console.buf,"autoboot")){
-
 			SysCntrl.PowerState =(SysCntrl.PowerState)?0:1;
+			sprintf(buf,"Autoboot is switched %s",SWT[SysCntrl.PowerState]);
+			UART_putstrln(1,buf);
 			writeConfig();
 		}
 		else
@@ -277,14 +278,14 @@ void UART_Con_Mash(){
 			UART_putstrln(1," ");
 		}
 		else
-		if(!strcmp(console.buf,"dump1")){
+		if(!strcmp(console.buf,"dump2")){
 			EnableSPI();
 			FlashDump(1);
 			DisableSPI();
 			UART_putstrln(1,EMPTY_SYM);
 		}
 		else
-		if(!strcmp(console.buf,"dump0")){
+		if(!strcmp(console.buf,"dump1")){
 			EnableSPI();
 			FlashDump(0);
 			DisableSPI();

@@ -152,7 +152,7 @@ void Xmodem_SPI(){
 				SysCntrl.TryCounter--;
 				if(!SysCntrl.TryCounter) {
 					SysCntrl.XmodemMode = 0;
-					UART_putstrln("Timeout...");
+					UART_putstrln(1,"Timeout...");
 				}
 				else {
 					SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
@@ -184,7 +184,7 @@ void Xmodem_SPI(){
 		result = ReadUartNonBlock(&bt,1);
 		if(result>0){
 			sprintf(buf,"EXIT %d",SysCntrl.SPI_page_idx);
-			UART_putstrln(buf);
+			UART_putstrln(0,buf);
 			if((bt == 0x01)) {
 					SysCntrl.XmodemState = XMODEM_STATE_S0;
 					SysCntrl.X_idx = 0;
@@ -256,11 +256,11 @@ void FlashDump(uint8_t cs){
 
 	if(HAL_SPI_Receive(&hspi1,SysCntrl.SPI_page, 256, HAL_MAX_DELAY) == HAL_OK){
 		SPI_ReadID(0,NULL);
-		UART_putstrln(SysCntrl.spi_buf_rx);
+		UART_putstrln(0, SysCntrl.spi_buf_rx);
 		for (i=0;i<256;i++){
 			UART_SendByte(ByteToHEX(SysCntrl.SPI_page[i]>>4));
 			UART_SendByte(ByteToHEX(SysCntrl.SPI_page[i]&0x0f));
-			UART_putstrln(1," ");
+			UART_putstrln(0,EMPTY_SYM);
 		}
 		UART_putstrln(1,"\n\r");
 	}

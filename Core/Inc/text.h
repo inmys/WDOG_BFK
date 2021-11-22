@@ -45,6 +45,8 @@
 
 
 #define WELCOME_SCREEN "INMYS MS-uQ7-BKLT\r\nHW ver.: "HW_VERSION"\r\nFW ver.: "STR(FW_VERMJR)"."STR(FW_VERMNR)
+#define EMPTY_SYM " "
+
 
 extern const char *CS_STASTUS_LABELS[];
 extern const char** menu[];
