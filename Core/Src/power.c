@@ -26,8 +26,8 @@ void PowerSM() {
 			//UART_putstrln("IN STAGE 100");
 
 			//AUTOBOOT HERE!!!!
-			//if(BootMenu() || SysCntrl.pwrbtn || SysCntrl.PowerState)
-			if(BootMenu() || SysCntrl.pwrbtn)
+			if(BootMenu() || SysCntrl.pwrbtn || SysCntrl.PowerState)
+			//if(BootMenu() || SysCntrl.pwrbtn)
 				SysCntrl.power_stage = 0;
 			break;
 		case 0:
@@ -164,8 +164,8 @@ void checkPowerLevels(uint8_t output){
 
 	SysCntrl.pgin = (pinState)?0:1;
 	if(output){
-		sprintf(buf,"PGIN: %d\r\n",SysCntrl.pgin);
-		UART_putstr(buf);
+		sprintf(buf,"PGIN: %d",SysCntrl.pgin);
+		UART_putstrln(1,buf);
 	}
 
 	pinState = HAL_GPIO_ReadPin(PWRBTN_PIN);
@@ -176,8 +176,8 @@ void checkPowerLevels(uint8_t output){
 	}
 
 	if(output){
-		sprintf(buf,"PWRBTN: %d\r\n",SysCntrl.pwrbtn);
-		UART_putstr(buf);
+		sprintf(buf,"PWRBTN: %d",SysCntrl.pwrbtn);
+		UART_putstrln(1,buf);
 	}
 
 	pinState = HAL_GPIO_ReadPin(RSTBTN_PIN);
@@ -189,8 +189,8 @@ void checkPowerLevels(uint8_t output){
 	}
 
 	if(output){
-		sprintf(buf,"RSTBTN: %d\r\n",SysCntrl.rstbtn);
-		UART_putstr(buf);
+		sprintf(buf,"RSTBTN: %d",SysCntrl.rstbtn);
+		UART_putstrln(1,buf);
 	}
 
 	pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
@@ -201,8 +201,8 @@ void checkPowerLevels(uint8_t output){
 	}
 
 	if(output){
-		sprintf(buf,"STMBOOTSEL: %d\r\n",SysCntrl.stmbootsel);
-		UART_putstr(buf);
+		sprintf(buf,"STMBOOTSEL: %d",SysCntrl.stmbootsel);
+		UART_putstrln(buf);
 	}
 }
 
@@ -214,18 +214,18 @@ int BootMenu(){
 
 	UART_putstrln(WELCOME_SCREEN);
 	memoryMenu();
-	UART_putstr("CPU FW status:");
+	UART_putstrln(0,"CPU FW status:");
 	UART_putstrln(CS_STASTUS_LABELS[SysCntrl.FWStatus]);
 	for(i=0;i<10;i++)
 		UART_putstrln(menu[i]);
-	UART_putstr(">>");
+	UART_putstrln(0,">>");
 
 	refreshConsoleBuffer();
 	while(!console.cmd_flag) userInput(0);
 	uint8_t cmd = atoi(console.buf)-1;
 	switch(cmd){
 	case 0:
-		UART_putstrln("Booting...");
+		UART_putstrln(1,"Booting...");
 		result = 1;
 		break;
 	case 1:

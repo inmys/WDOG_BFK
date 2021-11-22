@@ -156,7 +156,7 @@ void Xmodem_SPI(){
 				}
 				else {
 					SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
-					UART_putstr("C");
+					UART_putstrln(0,"C");
 				}
 			}
 		}
@@ -194,12 +194,12 @@ void Xmodem_SPI(){
 				if(bt == 0x04) {
 					// Все страницы зашили
 						UART_SendByte(0x06); // ACK
-						if(SysCntrl.SPI_page_idx == 128) {
-							Flash_PageWrite();
-							SysCntrl.XmodemState = XMODEM_STATE_INIT;
-							SysCntrl.XmodemMode = 0;
-							DisableSPI();
-							}
+						for(;SysCntrl.SPI_page_idx<128; SysCntrl.SPI_page_idx++)
+							SysCntrl.SPI_page[SysCntrl.SPI_page_idx] = 0;
+						Flash_PageWrite();
+						SysCntrl.XmodemState = XMODEM_STATE_INIT;
+						SysCntrl.XmodemMode = 0;
+						DisableSPI();
 				}
 				else
 					if(bt == 0x17) {
@@ -207,7 +207,6 @@ void Xmodem_SPI(){
 						SysCntrl.XmodemState = XMODEM_STATE_INIT;
 						SysCntrl.XmodemMode = 0;
 						DisableSPI();
-						UART_putstrln("Exited XMODEM BB");
 					}
 					else
 						if(bt == 0x18) {
@@ -217,7 +216,7 @@ void Xmodem_SPI(){
 							SysCntrl.XmodemMode = 0;
 							DisableSPI();
 
-							UART_putstrln("Canceled");
+							UART_putstrln(1,"Canceled");
 						}
 			}
 
@@ -235,7 +234,7 @@ void Xmodem_Init(){
 	SysCntrl.XmodemState = XMODEM_STATE_INIT;
 	SysCntrl.TryCounter = 100;
 	SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
-	UART_putstr("C");
+	UART_putstrln(0,"C");
 }
 
 
@@ -261,9 +260,9 @@ void FlashDump(uint8_t cs){
 		for (i=0;i<256;i++){
 			UART_SendByte(ByteToHEX(SysCntrl.SPI_page[i]>>4));
 			UART_SendByte(ByteToHEX(SysCntrl.SPI_page[i]&0x0f));
-			UART_putstr(" ");
+			UART_putstrln(1," ");
 		}
-		UART_putstr("\n\r");
+		UART_putstrln(1,"\n\r");
 	}
 	Set_CS(cs);
 	DisableSPI();
@@ -273,20 +272,20 @@ void FlashDump(uint8_t cs){
 void memoryMenu(){
 	char buf[BUF_LEN];
 	sprintf(buf,"CPU main flash #%d",SysCntrl.MainFlash+1);
-	UART_putstrln(buf);
+	UART_putstrln(1,buf);
 	clearBuf(buf);
 	sprintf(buf,"CPU boot flash #%d",SysCntrl.BootFlash+1);
-	UART_putstrln(buf);
+	UART_putstrln(1,buf);
 	clearBuf(buf);
 	sprintf(buf,"CPU boot attempt: %d",SysCntrl.BootAttempt);
-	UART_putstrln(buf);
+	UART_putstrln(1,buf);
 	clearBuf(buf);
 	sprintf(buf,"Watchdog: %s",SysCntrl.Watchdog?"Enabled":"Disabled");
-	UART_putstrln(buf);
+	UART_putstrln(1,buf);
 	sprintf(buf,"Auto boot: %s \r\nLaunch is %s",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
 	UART_putstrln(buf);
 	sprintf(buf,"DEBUG: CPU Power stage: %d",SysCntrl.power_stage);
-	UART_putstrln(buf);
+	UART_putstrln(1,buf);
 }
 
 void writeConfig(){

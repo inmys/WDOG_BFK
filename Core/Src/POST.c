@@ -16,11 +16,6 @@ void POST(){
 	char abuf[6],bbuf[6];
 	//cbuf[30];
 	memID conf;
-
-	//UART_putstr("\033[2J");
-
-	// Memory units
-	// Might be deleted cause POST run only while power on
 	EnableSPI();
 
 	for(i=0;i<2;i++){
@@ -30,7 +25,7 @@ void POST(){
 				bbuf[j] = 0;
 		}
 		sprintf(buf,"Flash %d: ",i+1);
-		UART_putstr(buf);
+		UART_putstrln(0,buf);
 
 		if(SPI_ReadID(i,&conf) == HAL_OK){
 //			sprintf(cbuf,"\r\Manufacture: %x, MemCapacity: %x,MemType: %x, Uniq: %x",conf.ManufacturerID, conf.MemoryCapacity, conf.MemoryType, conf.UniqID);
@@ -69,12 +64,12 @@ void POST(){
 			default:
 				sprintf(bbuf,"?");
 			}
-		sprintf(buf,"%sV %s\r\n",abuf, bbuf);
+		sprintf(buf,"%sV %s",abuf, bbuf);
 		}
 		else
-			sprintf(buf,"FAILED\r\n");
+			sprintf(buf,"FAILED");
 
-		UART_putstr(buf);
+		UART_putstrln(1,buf);
 	}
 
 	// I/O Expander
@@ -85,21 +80,17 @@ void POST(){
 	SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,abuf,2,1);
 
 	uint8_t tester = 0x03;
-	UART_putstr("I/O Expander: ");
+	UART_putstrln(1,"I/O Expander: ");
 	SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,&tester,1,1);
 	tester = 0;
 	SFT_I2C_Master_Receive(&si2c1,GPIO_EXPANDER_ADDR,&tester,1,1);
-//	clearBuf(buf);
-//	sprintf(buf,"   ===%d===  ",tester);
-//	UART_putstr(buf);
 	if(tester==0b01010101)
-		UART_putstr("OK\r\n");
+		UART_putstrln(1,"OK");
 	else
-		UART_putstr("FAILED\r\n");
+		UART_putstrln(1,"FAILED");
 	abuf[1] = 0;
 	SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,abuf,2,1);
 
-//	UART_putstr("\n\r\n\r\n\r\n\r\n\r");
 
 	// Might be deleted cause POST run only while power on
 	DisableSPI();

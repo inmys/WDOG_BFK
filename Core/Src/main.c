@@ -41,7 +41,7 @@
 	#define FALSE 0
 #endif
 /* USER CODE END PTD */
-
+// TEST
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 /* USER CODE END PD */
@@ -140,18 +140,16 @@ void Test_RxPacket(uint8_t *Buf,uint32_t Len) {
 	}
 }
 
-void UART_putstr(char *str){
-	while(CDC_Transmit_FS((uint8_t*)str,strlen(str)) != USBD_OK);
-}
 
 
-// ПРОВЕРИТЬ
-void UART_putstrln(char *str){
-	HAL_Delay(1);
+void UART_putstrln(uint8_t LF,char *str){
+	uint8_t result;
 	if(str!=0)
-		while(CDC_Transmit_FS((uint8_t*)str,strlen(str)) != USBD_OK);
-	HAL_Delay(1);
-	while(CDC_Transmit_FS((uint8_t*)"\r\n",3) != USBD_OK);
+		do{
+			result = CDC_Transmit_FS((uint8_t*)str,strlen(str));
+		}while(result != USBD_BUSY);
+	while(((result == USBD_OK) && (LF--) && (result == USBD_OK)) || (!str && (LF--)))
+		result = CDC_Transmit_FS((uint8_t*)"\r\n",3);
 }
 
 
@@ -207,6 +205,7 @@ void userInput(uint8_t anykey){
 		}
 
 	}while(console.result && (!console.cmd_flag));
+	UART_putstrln(1,0);
 }
 
 void refreshConsoleBuffer(){
@@ -224,7 +223,7 @@ void clearUartConsole(){
 	// temp way
 	//while(CDC_Transmit_FS((uint8_t*)"\e[3J",strlen("\e[3J")) != USBD_OK);
 	//UART_putstrln("\x1B[2J\x1B[H"); //"\x1B[2J\x1B[H"
-	UART_putstrln("\033[2J");
+	UART_putstrln(1,"\033[2J");
 
 }
 
@@ -236,21 +235,21 @@ void UART_Con_Mash(){
 	if(console.cmd_flag){
 
 		if(!strcmp(console.buf,"help")){
-			UART_putstrln("ping!");
+			UART_putstrln(1,"ping!");
 		}
 		else
 		if(!strcmp(console.buf,"clear")){
-			UART_putstrln("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+			UART_putstrln(42,0);
 		}
 		else
 		if(!strcmp(console.buf,"lvl")){
 			sprintf(buf,"I2C pins: %u %u",HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_7),HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_6));
-			UART_putstrln(buf);
+			UART_putstrln(1,buf);
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
 			SysCntrl.power_stage = 41;
-			UART_putstrln("CPU restarted...");
+			UART_putstrln(1,"CPU restarted...");
 			refreshConsoleBuffer();
 			//UART_putstrln(0);
 		}
@@ -263,24 +262,24 @@ void UART_Con_Mash(){
 		else
 		if(!strcmp(console.buf,"poweroff")){
 			SysCntrl.power_stage = 100;
-			//SysCntrl.PowerState = (SysCntrl.PowerState)?0:1;;
-			UART_putstrln("CPU turn off...");
+			SysCntrl.PowerState = ~SysCntrl.PowerState;
+			UART_putstrln(1,"CPU turn off...");
 			refreshConsoleBuffer();
-			UART_putstrln(0);
+			UART_putstrln(1,0);
 		}
 		else
 		if(!strcmp(console.buf,"dump1")){
 			EnableSPI();
 			FlashDump(1);
 			DisableSPI();
-			UART_putstrln(0);
+			UART_putstrln(1,0);
 		}
 		else
 		if(!strcmp(console.buf,"dump0")){
 			EnableSPI();
 			FlashDump(0);
 			DisableSPI();
-			UART_putstrln(0);
+			UART_putstrln(1,0);
 		}
 		else
 		if(!strcmp(console.buf,"post")){
@@ -297,17 +296,17 @@ void UART_Con_Mash(){
 		else
 		if(!strcmp(console.buf,"wdog")){
 			sprintf(buf,"WDOG timer: %d",SysCntrl.WatchdogTimer);
-			UART_putstrln(buf);
+			UART_putstrln(1,buf);
 		}
 		else
 		if(!strcmp(console.buf,"i2cs")){
 			sprintf(buf,"i2c state:%d register:%d",hi2c.state,hi2c.address);
-			UART_putstrln(buf);
+			UART_putstrln(1,buf);
 		}
 		else
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);
-			UART_putstrln(buf);
+			UART_putstrln(1,buf);
 		}
 		else
 		if(!strcmp(console.buf,"toggleMem")){
@@ -316,12 +315,10 @@ void UART_Con_Mash(){
 			writeConfig();
 		}
 		else
-		if(strcmp(console.buf,"")){
-			//UART_putstrln("Unknown command: ");
-			UART_putstr("Unknown command: ");
-		}
-		UART_putstrln(0);
-		UART_putstr(">>");
+		if(strcmp(console.buf,""))
+			UART_putstrln(1,"Unknown command: ");
+		UART_putstrln(1,0);
+		UART_putstrln(0,">>");
 		refreshConsoleBuffer();
 
 	}
@@ -374,7 +371,7 @@ int main(void)
   if(SysCntrl.Magic!=0b10110){
 	SysCntrl.MainFlash = 0;
 	SysCntrl.FWStatus = 0;
-	SysCntrl.dog = 1;
+	SysCntrl.Watchdog = 1;
 	SysCntrl.PowerState = 1;
 	SysCntrl.Magic = 0b10110;
 	writeConfig();
@@ -468,7 +465,7 @@ int main(void)
 				  k = 0;
 
 					sprintf(buf,"state: %d %d %d",SysCntrl.power_stage,SysCntrl.XmodemMode,SysCntrl.XmodemState);
-					UART_putstrln(buf);
+					UART_putstrln(1,buf);
 			  }
 		  break;
 		  }
@@ -770,7 +767,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-	UART_putstrln("GOTCHA ERROR");
+	UART_putstrln(1,"GOTCHA ERROR");
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
