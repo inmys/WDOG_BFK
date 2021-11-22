@@ -60,7 +60,8 @@ SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
-
+#define EMPTY_SYM " "
+extern USBD_HandleTypeDef hUsbDeviceFS;
 I2C_handler si2c1;
 /* USER CODE END PV */
 
@@ -142,16 +143,30 @@ void Test_RxPacket(uint8_t *Buf,uint32_t Len) {
 
 
 
-void UART_putstrln(uint8_t LF,char *str){
-	uint8_t result;
-	if(str!=0)
-		do{
-			result = CDC_Transmit_FS((uint8_t*)str,strlen(str));
-		}while(result != USBD_BUSY);
-	while(((result == USBD_OK) && (LF--) && (result == USBD_OK)) || (!str && (LF--)))
-		result = CDC_Transmit_FS((uint8_t*)"\r\n",3);
-}
+//void UART_putstrln(uint8_t LF,char *str){
+//	uint8_t result;
+//	if(CDC_Transmit_FS((uint8_t*)0,0) == USBD_OK ){
+//		if(str!=0)
+//			do{
+//				result = CDC_Transmit_FS((uint8_t*)str,strlen(str));
+//				CDC_Transmit_FS((uint8_t*)"..",3);
+//			}while(result != USBD_OK);
+//		while(LF--)
+//			CDC_Transmit_FS((uint8_t*)"\r\n",3);
+//	}
+//}
 
+void UART_putstrln(uint8_t LF,char *str){
+	if(hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED){
+		HAL_Delay(1);
+		CDC_Transmit_FS((uint8_t*)str,strlen(str));
+		while(LF>0){
+			HAL_Delay(1);
+			CDC_Transmit_FS((uint8_t*)"\r\n",3);
+			LF--;
+		}
+	}
+}
 
 void UART_SendByte(uint8_t bt) {
 	while(CDC_Transmit_FS(&bt,1) != USBD_OK);
@@ -183,7 +198,7 @@ void userInput(uint8_t anykey){
 			switch(bt){
 			case 127:
 				UART_SendByte(0x8);
-				UART_SendByte(0x20); //0x20 - asci space
+				UART_SendByte(0x20); //0x20 - ascii space
 				UART_SendByte(0x8);
 
 				console.buf[console.idx] = 0;
@@ -205,7 +220,6 @@ void userInput(uint8_t anykey){
 		}
 
 	}while(console.result && (!console.cmd_flag));
-	UART_putstrln(1,0);
 }
 
 void refreshConsoleBuffer(){
@@ -220,20 +234,15 @@ void refreshConsoleBuffer(){
 }
 
 void clearUartConsole(){
-	// temp way
-	//while(CDC_Transmit_FS((uint8_t*)"\e[3J",strlen("\e[3J")) != USBD_OK);
-	//UART_putstrln("\x1B[2J\x1B[H"); //"\x1B[2J\x1B[H"
 	UART_putstrln(1,"\033[2J");
-
 }
 
 void UART_Con_Mash(){
 	char buf[16];
 	uint8_t t;
 	userInput(0);
-	//UART_putstrln("HELLO FROM USB FIRWARE");
 	if(console.cmd_flag){
-
+		UART_putstrln(1,NULL);
 		if(!strcmp(console.buf,"help")){
 			UART_putstrln(1,"ping!");
 		}
@@ -265,21 +274,21 @@ void UART_Con_Mash(){
 			SysCntrl.PowerState = ~SysCntrl.PowerState;
 			UART_putstrln(1,"CPU turn off...");
 			refreshConsoleBuffer();
-			UART_putstrln(1,0);
+			UART_putstrln(1," ");
 		}
 		else
 		if(!strcmp(console.buf,"dump1")){
 			EnableSPI();
 			FlashDump(1);
 			DisableSPI();
-			UART_putstrln(1,0);
+			UART_putstrln(1,EMPTY_SYM);
 		}
 		else
 		if(!strcmp(console.buf,"dump0")){
 			EnableSPI();
 			FlashDump(0);
 			DisableSPI();
-			UART_putstrln(1,0);
+			UART_putstrln(1,EMPTY_SYM);
 		}
 		else
 		if(!strcmp(console.buf,"post")){
@@ -317,7 +326,7 @@ void UART_Con_Mash(){
 		else
 		if(strcmp(console.buf,""))
 			UART_putstrln(1,"Unknown command: ");
-		UART_putstrln(1,0);
+		UART_putstrln(1,EMPTY_SYM);
 		UART_putstrln(0,">>");
 		refreshConsoleBuffer();
 
@@ -326,8 +335,6 @@ void UART_Con_Mash(){
 }
 
 
-
-extern USBD_HandleTypeDef hUsbDeviceFS;
 
 
 uint8_t ByteToHEX(uint8_t bt){
@@ -458,15 +465,8 @@ int main(void)
 			SysCntrl.WatchdogTimer++;
 			break;
 		  case 5:
-			  if(SysCntrl.XmodemMode){
+			  if(SysCntrl.XmodemMode)
 				  Xmodem_SPI();
-			  }
-			  if(k++>1000){
-				  k = 0;
-
-					sprintf(buf,"state: %d %d %d",SysCntrl.power_stage,SysCntrl.XmodemMode,SysCntrl.XmodemState);
-					UART_putstrln(1,buf);
-			  }
 		  break;
 		  }
 	  }

@@ -89,7 +89,6 @@ void PowerSM() {
 			SysCntrl.power_stage = 51;
 			//WATHCDOG HARD OFF HERE!!!
 			SysCntrl.Watchdog = 0;
-			SysCntrl.Watchdog = 0;
 			SysCntrl.WatchdogTimer = 0;
 		break;
 		// State: CPU is on & power is on NORMAL STATE
@@ -202,7 +201,7 @@ void checkPowerLevels(uint8_t output){
 
 	if(output){
 		sprintf(buf,"STMBOOTSEL: %d",SysCntrl.stmbootsel);
-		UART_putstrln(buf);
+		UART_putstrln(1,buf);
 	}
 }
 
@@ -212,16 +211,17 @@ int BootMenu(){
 	uint8_t i,result = 0;
 	clearUartConsole();
 
-	UART_putstrln(WELCOME_SCREEN);
+	UART_putstrln(1,WELCOME_SCREEN);
 	memoryMenu();
 	UART_putstrln(0,"CPU FW status:");
-	UART_putstrln(CS_STASTUS_LABELS[SysCntrl.FWStatus]);
+	UART_putstrln(1,CS_STASTUS_LABELS[SysCntrl.FWStatus]);
 	for(i=0;i<10;i++)
-		UART_putstrln(menu[i]);
+		UART_putstrln(1,menu[i]);
 	UART_putstrln(0,">>");
 
 	refreshConsoleBuffer();
-	while(!console.cmd_flag) userInput(0);
+	while(!console.cmd_flag)
+		userInput(0);
 	uint8_t cmd = atoi(console.buf)-1;
 	switch(cmd){
 	case 0:
@@ -231,7 +231,7 @@ int BootMenu(){
 	case 1:
 		// Update 1st flash
 		if(SysCntrl.MainFlash == 0){
-			UART_putstrln(text[3]);
+			UART_putstrln(1,text[3]);
 			// ERROR
 		}
 		else{
@@ -242,7 +242,7 @@ int BootMenu(){
 	case 2:
 		// Update 1st flash
 		if(SysCntrl.MainFlash == 1){
-			UART_putstrln(text[3]);
+			UART_putstrln(1,text[3]);
 			// ERROR
 		}
 		else{

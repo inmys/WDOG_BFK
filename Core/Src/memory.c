@@ -283,7 +283,7 @@ void memoryMenu(){
 	sprintf(buf,"Watchdog: %s",SysCntrl.Watchdog?"Enabled":"Disabled");
 	UART_putstrln(1,buf);
 	sprintf(buf,"Auto boot: %s \r\nLaunch is %s",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
-	UART_putstrln(buf);
+	UART_putstrln(1,buf);
 	sprintf(buf,"DEBUG: CPU Power stage: %d",SysCntrl.power_stage);
 	UART_putstrln(1,buf);
 }
@@ -300,7 +300,7 @@ void writeConfig(){
 	HAL_FLASHEx_Erase(&EraseInitStruct,&error);
 	uint16_t data = (SysCntrl.SavedConfigH<<8)|(SysCntrl.SavedConfigL);
 	HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD,CONFIG_ADDR_IN_FLASH, data);
-	HAL_Delay(500);
+	HAL_Delay(50);
 	HAL_FLASH_Lock();
 }
 

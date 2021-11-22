@@ -36,7 +36,6 @@ struct SSysCntrl{
 	uint32_t TimerCnt;
 	uint8_t TryCounter;
 
-
 	uint8_t TimerTick:1;
 	uint16_t MS_counter;
 	// Memory configuration
