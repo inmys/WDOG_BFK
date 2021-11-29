@@ -142,20 +142,6 @@ void Test_RxPacket(uint8_t *Buf,uint32_t Len) {
 }
 
 
-
-//void UART_putstrln(uint8_t LF,char *str){
-//	uint8_t result;
-//	if(CDC_Transmit_FS((uint8_t*)0,0) == USBD_OK ){
-//		if(str!=0)
-//			do{
-//				result = CDC_Transmit_FS((uint8_t*)str,strlen(str));
-//				CDC_Transmit_FS((uint8_t*)"..",3);
-//			}while(result != USBD_OK);
-//		while(LF--)
-//			CDC_Transmit_FS((uint8_t*)"\r\n",3);
-//	}
-//}
-
 void UART_putstrln(uint8_t LF,char *str){
 	if(hUsbDeviceFS.dev_state == USBD_STATE_CONFIGURED){
 		HAL_Delay(1);
@@ -334,13 +320,13 @@ void UART_Con_Mash(){
 		}
 		else
 			// Нужно ли меня флешки на лету?
-		/*if(!strcmp(console.buf,"toggleMem")){
+		if(!strcmp(console.buf,"toggleMem")){
 			SysCntrl.BootFlash = ~SysCntrl.BootFlash;
 			SysCntrl.MainFlash = ~SysCntrl.MainFlash;
 			writeConfig();
 		}
 		else
-		*/
+
 		if(strcmp(console.buf,""))
 			UART_putstrln(1,"Unknown command: ");
 		UART_putstrln(1,EMPTY_SYM);
@@ -363,14 +349,6 @@ if(bt<=0xf)
 return 'X';
 
 }
-
-
-//void printBin(uint8_t bin){
-//	char buf[23] = {0};
-//	sprintf(buf,"0b%d%d%d%d%d%d%d%d",(bin&(1<<7))?1:0,(bin&(1<<6))?1:0,(bin&(1<<5))?1:0,(bin&(1<<4))?1:0,(bin&(1<<3))?1:0,(bin&(1<<2))?1:0,(bin&(1<<1))?1:0,(bin&(1<<0))?1:0);
-//	UART_putstrln(buf);
-//}
-
 
 /* USER CODE END 0 */
 

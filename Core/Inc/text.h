@@ -17,8 +17,6 @@
 
 
 
-#define STR(a) #a
-
 
 #define BUF_LEN 40
 #define GPIO_EXPANDER_ADDR 0x20<<1

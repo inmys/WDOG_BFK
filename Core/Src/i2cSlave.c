@@ -7,12 +7,13 @@
 
 #include "i2cSlave.h"
 #include "power.h"
+#include "memory.h"
 #include "stm32f0xx_hal.h"
 #include "stm32f0xx_hal_i2c.h"
-
+#include "stdio.h"
 uint32_t readWord();
 void writeWord(uint8_t);
-
+void clearHi2c();
 uint8_t confReg0;
 
 void checkChange();
@@ -26,9 +27,8 @@ void checkChange();
 
 void i2cSM(){
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
-	//char *MazzyStar = "I wanna hold the hand inside you  I wanna take the breath that's true  I look to you and I see nothing  I look to you to see the truth  You live your life, you go in shadows  You'll come apart and you'll go black  Some kind of night into your darkness  Colors your eyes with what's not there";
 	uint8_t byte;
-	char buf[16];
+	char buf[25];
 
 
 	checkChange();
@@ -39,12 +39,7 @@ void i2cSM(){
 	   if ((I2C1->ISR & I2C_ISR_DIR) == I2C_ISR_DIR){
 		   hi2c.state=1;
 		   I2C1->CR1 |= I2C_CR1_TXIE;
-//Здесь просто магия какая-то. Readword сама по себе вызывается, я так и не понял откуда и почему.
-//Однако hi2c.address равен тому регистру, который был запрошен в i2cget
-//		   hi2c.address = readWord();
 
-//		   sprintf(buf,"Baiak want address: %x", hi2c.address);
-//		   UART_putstrln(buf);
 	   }
 	   else{
 		   hi2c.state=3;
@@ -147,13 +142,8 @@ void i2cSM(){
 uint32_t readWord(){
 	uint32_t word = 0;
 	HAL_Delay(150);
-	char buf1[12];
-	if (((I2C1->ISR) & I2C_ISR_RXNE)==I2C_ISR_RXNE){
+	if (((I2C1->ISR) & I2C_ISR_RXNE)==I2C_ISR_RXNE)
 		word = I2C1->RXDR;
-//		sprintf(buf1, "A RX BUF: %d", word);
-//		UART_putstrln(buf1);
-
-	}
 	return word;
 }
 void writeWord(uint8_t word){
