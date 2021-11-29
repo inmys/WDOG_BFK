@@ -185,6 +185,15 @@ int ReadUartNonBlock(uint8_t *buf,int size) {
 }
 
 
+void printBuf(){
+	uint8_t i;
+	for(i = 0;i<UART_BUF_SIZE;i++)
+		UART_SendByte(' ');
+	UART_SendByte('\r');
+	for(i = 0;i<UART_BUF_SIZE && console.buf[i];i++)
+		UART_SendByte(console.buf[i]);
+}
+
 void userInput(uint8_t anykey){
 	uint8_t bt;
 	char buf[4] = {0};
@@ -200,7 +209,6 @@ void userInput(uint8_t anykey){
 				UART_SendByte(0x8);
 				UART_SendByte(0x20); //0x20 - ascii space
 				UART_SendByte(0x8);
-
 				console.buf[console.idx] = 0;
 				console.idx--;
 				bt = 0;
@@ -211,6 +219,21 @@ void userInput(uint8_t anykey){
 			case '\r':
 				console.buf[console.idx++] = 0;
 				console.cmd_flag = 1;
+				break;
+			/*case 27:
+				ReadUartNonBlock(&bt, 1);
+				ReadUartNonBlock(&bt, 1);
+				if(bt == 65){ // ARROW UP
+					memcpy(console.prevBuf,console.buf,UART_BUF_SIZE);
+					UART_SendByte('U');
+				}else
+					if(bt == 66){ // ARROW DOWN
+						memset(console.buf,0,UART_BUF_SIZE);
+						UART_SendByte('D');
+					}
+				printBuf();
+				break;
+				*/
 			default:
 				console.buf[console.idx++] = bt;
 				UART_SendByte(bt);
@@ -242,6 +265,7 @@ void UART_Con_Mash(){
 	uint8_t t;
 	userInput(0);
 	if(console.cmd_flag){
+		memcpy(console.buf,console.prevBuf,UART_BUF_SIZE);
 		UART_putstrln(1,NULL);
 		if(!strcmp(console.buf,"ping")){
 			UART_putstrln(1,"pong!");
@@ -249,11 +273,6 @@ void UART_Con_Mash(){
 		else
 		if(!strcmp(console.buf,"clear")){
 			UART_putstrln(42,0);
-		}
-		else
-		if(!strcmp(console.buf,"lvl")){
-			sprintf(buf,"I2C pins: %u %u",HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_7),HAL_GPIO_ReadPin(GPIOB,GPIO_PIN_6));
-			UART_putstrln(1,buf);
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
@@ -300,31 +319,28 @@ void UART_Con_Mash(){
 			checkPowerLevels(1);
 		}
 		else
-		if(!strcmp(console.buf,"mm")){
+		if(!strcmp(console.buf,"Info")){
 			memoryMenu(1);
 		}
-		else
+		/*else
 		if(!strcmp(console.buf,"wdog")){
 			sprintf(buf,"WDOG timer: %d",SysCntrl.WatchdogTimer);
 			UART_putstrln(1,buf);
-		}
-		else
-		if(!strcmp(console.buf,"i2cs")){
-			sprintf(buf,"i2c state:%d register:%d",hi2c.state,hi2c.address);
-			UART_putstrln(1,buf);
-		}
+		}*/
 		else
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);
 			UART_putstrln(1,buf);
 		}
 		else
-		if(!strcmp(console.buf,"toggleMem")){
+			// Нужно ли меня флешки на лету?
+		/*if(!strcmp(console.buf,"toggleMem")){
 			SysCntrl.BootFlash = ~SysCntrl.BootFlash;
 			SysCntrl.MainFlash = ~SysCntrl.MainFlash;
 			writeConfig();
 		}
 		else
+		*/
 		if(strcmp(console.buf,""))
 			UART_putstrln(1,"Unknown command: ");
 		UART_putstrln(1,EMPTY_SYM);

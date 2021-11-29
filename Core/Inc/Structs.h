@@ -75,11 +75,11 @@ struct SSysCntrl{
 struct SConsole{
 	uint8_t idx;
 	uint8_t buf[UART_BUF_SIZE];
+	uint8_t prevBuf[UART_BUF_SIZE];
 	uint8_t cmd_flag;
 	uint8_t result;
 	uint8_t cmdCode;
 	uint8_t args[3];
-	uint8_t timer;
 } console;
 
 

@@ -32,7 +32,7 @@
 #define XMODEM_STATE_S3 (4)
 
 
-#define UART_BUF_SIZE 32
+#define UART_BUF_SIZE 16
 #define RX_BUF_SIZE (256)
 
 #define STR_LAYER(x) #x
