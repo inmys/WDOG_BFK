@@ -10,6 +10,8 @@
 #define CLOCK_UP HAL_GPIO_WritePin(si2c->scl.GPIOx,si2c->scl.GPIO_pin,1)
 #define CLOCK_DOWN HAL_GPIO_WritePin(si2c->scl.GPIOx,si2c->scl.GPIO_pin,0)
 
+void setLineDirection(struct sPinPack *line,uint8_t params);
+
 void I2C_Delay(uint32_t us){
 	uint32_t value = HAL_RCC_GetSysClockFreq();
 	value/=1e6;

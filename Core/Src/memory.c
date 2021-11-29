@@ -1,5 +1,7 @@
 #include "structs.h"
 #include "memory.h"
+#include "stdio.h"
+
 
 extern SPI_HandleTypeDef hspi1;
 extern void MX_SPI1_Init(void);
@@ -183,7 +185,6 @@ void Xmodem_SPI(){
 	case XMODEM_STATE_S1:
 		result = ReadUartNonBlock(&bt,1);
 		if(result>0){
-			sprintf(buf,"EXIT %d",SysCntrl.SPI_page_idx);
 			UART_putstrln(0,buf);
 			if((bt == 0x01)) {
 					SysCntrl.XmodemState = XMODEM_STATE_S0;

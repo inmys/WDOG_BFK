@@ -30,6 +30,7 @@
 #include "memory.h"
 #include "POST.h"
 #include "power.h"
+#include "POST.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,7 +62,7 @@ SPI_HandleTypeDef hspi1;
 /* USER CODE BEGIN PV */
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
-extern const char** SWT[];
+extern const char* SWT[];
 I2C_handler si2c1;
 /* USER CODE END PV */
 
@@ -179,10 +180,9 @@ void printBuf(){
 	for(i = 0;i<UART_BUF_SIZE && console.buf[i];i++)
 		UART_SendByte(console.buf[i]);
 }
-
+/*
 void userInput(uint8_t anykey){
 	uint8_t bt;
-	char buf[4] = {0};
 	do{
 		console.result = ReadUartNonBlock(&bt, 1);
 		if(console.result) {
@@ -219,7 +219,7 @@ void userInput(uint8_t anykey){
 					}
 				printBuf();
 				break;
-				*/
+
 			default:
 				console.buf[console.idx++] = bt;
 				UART_SendByte(bt);
@@ -230,7 +230,47 @@ void userInput(uint8_t anykey){
 
 	}while(console.result && (!console.cmd_flag));
 }
+*/
 
+
+void userInput(uint8_t anykey){
+	uint8_t bt;
+	char buf[4] = {0};
+	do{
+		console.result = ReadUartNonBlock(&bt, 1);
+		if(console.result) {
+
+			if(anykey)
+				console.cmd_flag = 1;
+
+			switch(bt){
+			case 127:
+				UART_SendByte(0x8);
+				UART_SendByte(0x20); //0x20 - ascii space
+				UART_SendByte(0x8);
+
+				console.buf[console.idx] = 0;
+				console.idx--;
+				bt = 0;
+				break;
+			case '\n':
+				continue;
+				break;
+			case '\r':
+				console.buf[console.idx++] = 0;
+				console.cmd_flag = 1;
+			default:
+				if(bt>31){
+					console.buf[console.idx++] = bt;
+					UART_SendByte(bt);
+				}
+			}
+
+			if(console.idx >= UART_BUF_SIZE) console.idx = 0;
+		}
+
+	}while(console.result && (!console.cmd_flag));
+}
 void refreshConsoleBuffer(){
 	uint8_t i;
 	for(i=0;i<UART_BUF_SIZE;i++)
@@ -247,12 +287,10 @@ void clearUartConsole(){
 }
 
 void UART_Con_Mash(){
-	char buf[16];
-	uint8_t t;
+	char buf[25];
 	userInput(0);
 	if(console.cmd_flag){
-		memcpy(console.buf,console.prevBuf,UART_BUF_SIZE);
-		UART_putstrln(1,NULL);
+		UART_putstrln(1,EMPTY_SYM);
 		if(!strcmp(console.buf,"ping")){
 			UART_putstrln(1,"pong!");
 		}
@@ -264,7 +302,6 @@ void UART_Con_Mash(){
 		if(!strcmp(console.buf,"restart")){
 			SysCntrl.power_stage = 41;
 			UART_putstrln(1,"CPU restarted...");
-			refreshConsoleBuffer();
 			//UART_putstrln(0);
 		}
 		else
@@ -279,8 +316,6 @@ void UART_Con_Mash(){
 			SysCntrl.power_stage = 100;
 			SysCntrl.PowerState = ~SysCntrl.PowerState;
 			UART_putstrln(1,"CPU turn off...");
-			refreshConsoleBuffer();
-			UART_putstrln(1," ");
 		}
 		else
 		if(!strcmp(console.buf,"dump2")){
@@ -297,16 +332,13 @@ void UART_Con_Mash(){
 			UART_putstrln(1,EMPTY_SYM);
 		}
 		else
-		if(!strcmp(console.buf,"post")){
-			POST();
-		}
-		else
 		if(!strcmp(console.buf,"power")){
 			checkPowerLevels(1);
 		}
 		else
-		if(!strcmp(console.buf,"Info")){
+		if(!strcmp(console.buf,"info")){
 			memoryMenu(1);
+			POST();
 		}
 		/*else
 		if(!strcmp(console.buf,"wdog")){
@@ -326,8 +358,6 @@ void UART_Con_Mash(){
 			writeConfig();
 		}
 		else
-
-		if(strcmp(console.buf,""))
 			UART_putstrln(1,"Unknown command: ");
 		UART_putstrln(1,EMPTY_SYM);
 		UART_putstrln(0,">>");
@@ -359,10 +389,8 @@ return 'X';
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* USER CODE END 1 */
-	char buf[64];
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -419,7 +447,6 @@ int main(void)
   refreshConsoleBuffer();
   DisableSPI();
   clearHi2c();
-  uint16_t k = 0;
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
 
   /* USER CODE END 2 */

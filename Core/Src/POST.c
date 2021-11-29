@@ -4,7 +4,7 @@
 #include "memory.h"
 #include "i2c.h"
 #include "power.h"
-
+#include "stdio.h"
 
 //extern I2C_HandleTypeDef hi2c1;
 extern I2C_handler si2c1;

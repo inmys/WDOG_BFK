@@ -18,7 +18,7 @@
 
 
 
-#define BUF_LEN 40
+#define BUF_LEN 45
 #define GPIO_EXPANDER_ADDR 0x20<<1
 
 #define XMODEM_TIME_1SEC (100)
@@ -47,8 +47,8 @@
 
 
 extern const char *CS_STASTUS_LABELS[];
-extern const char** menu[];
-extern const char** text[];
+extern const char* menu[];
+extern const char* text[];
 extern const char* ASMNOP;
 
 

@@ -8,11 +8,12 @@
 #include "power.h"
 #include "memory.h"
 #include "text.h"
+#include "stdio.h"
+#include "stdlib.h"
 
 int BootMenu();
 
 void PowerSM() {
-	char buf[32] = {0};
 	if(SysCntrl.PowerTimer>0)
 		SysCntrl.PowerTimer--;
 	else
@@ -21,13 +22,9 @@ void PowerSM() {
 		// State: CPU is turned off & power is off
 		//CPU is turned off & is not planing to going on
 		case 100:
-			//ClrI2C_Mask(ENA_LV_DCDC|ENA_HV_DCDC|TRST_N|EJ_TRST_N|RESETN,|CPU_RESET);
 			ClrI2C_Mask(0b11111111);
-			//UART_putstrln("IN STAGE 100");
 
-			//AUTOBOOT HERE!!!!
 			if(BootMenu() || SysCntrl.pwrbtn || SysCntrl.PowerState)
-			//if(BootMenu() || SysCntrl.pwrbtn)
 				SysCntrl.power_stage = 0;
 			break;
 		case 0:
@@ -138,7 +135,6 @@ uint8_t debouncer(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin){
 	uint8_t pinState;
 	uint8_t prevState;
 	uint8_t i,swtch = 1;
-	char buf[25] = {0};
 	pinState = HAL_GPIO_ReadPin(GPIOx,GPIO_Pin);
 	for(i=0;i<3 && swtch;i++){
 		prevState = pinState;
@@ -151,7 +147,7 @@ uint8_t debouncer(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin){
 
 	if(swtch)
 		return 0b10000000|((pinState)?1:0);
-
+	return ((pinState)?1:0);
 }
 
 void checkPowerLevels(uint8_t output){
@@ -192,7 +188,7 @@ void checkPowerLevels(uint8_t output){
 		UART_putstrln(1,buf);
 	}
 
-	pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
+	/*pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
 	if((pinState&0b00000001)!=SysCntrl.stmbootsel){
 		pinState = debouncer(STMBOOTSEL_PIN);
 		if(pinState&0b10000000)
@@ -203,6 +199,7 @@ void checkPowerLevels(uint8_t output){
 		sprintf(buf,"STMBOOTSEL: %d",SysCntrl.stmbootsel);
 		UART_putstrln(1,buf);
 	}
+	*/
 }
 
 

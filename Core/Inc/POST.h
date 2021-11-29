@@ -6,5 +6,5 @@
 
 void memoryTest();
 void RTCTest();
-
+void POST();
 #endif
