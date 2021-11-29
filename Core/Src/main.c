@@ -172,69 +172,8 @@ int ReadUartNonBlock(uint8_t *buf,int size) {
 }
 
 
-void printBuf(){
-	uint8_t i;
-	for(i = 0;i<UART_BUF_SIZE;i++)
-		UART_SendByte(' ');
-	UART_SendByte('\r');
-	for(i = 0;i<UART_BUF_SIZE && console.buf[i];i++)
-		UART_SendByte(console.buf[i]);
-}
-/*
 void userInput(uint8_t anykey){
-	uint8_t bt;
-	do{
-		console.result = ReadUartNonBlock(&bt, 1);
-		if(console.result) {
-
-			if(anykey)
-				console.cmd_flag = 1;
-
-			switch(bt){
-			case 127:
-				UART_SendByte(0x8);
-				UART_SendByte(0x20); //0x20 - ascii space
-				UART_SendByte(0x8);
-				console.buf[console.idx] = 0;
-				console.idx--;
-				bt = 0;
-				break;
-			case '\n':
-				continue;
-				break;
-			case '\r':
-				console.buf[console.idx++] = 0;
-				console.cmd_flag = 1;
-				break;
-			/*case 27:
-				ReadUartNonBlock(&bt, 1);
-				ReadUartNonBlock(&bt, 1);
-				if(bt == 65){ // ARROW UP
-					memcpy(console.prevBuf,console.buf,UART_BUF_SIZE);
-					UART_SendByte('U');
-				}else
-					if(bt == 66){ // ARROW DOWN
-						memset(console.buf,0,UART_BUF_SIZE);
-						UART_SendByte('D');
-					}
-				printBuf();
-				break;
-
-			default:
-				console.buf[console.idx++] = bt;
-				UART_SendByte(bt);
-			}
-
-			if(console.idx >= UART_BUF_SIZE) console.idx = 0;
-		}
-
-	}while(console.result && (!console.cmd_flag));
-}
-*/
-
-
-void userInput(uint8_t anykey){
-	uint8_t bt;
+	uint8_t i,bt;
 	char buf[4] = {0};
 	do{
 		console.result = ReadUartNonBlock(&bt, 1);
@@ -259,6 +198,21 @@ void userInput(uint8_t anykey){
 			case '\r':
 				console.buf[console.idx++] = 0;
 				console.cmd_flag = 1;
+				memcpy(console.prevBuf,console.buf,UART_BUF_SIZE);
+			case 27:
+				ReadUartNonBlock(&bt, 1);
+				ReadUartNonBlock(&bt, 1);
+				if(bt == 65){ // ARROW UP
+					UART_SendByte('\r');
+					for(i = 0;i<15;i++)
+						UART_SendByte(' ');
+					UART_SendByte('\r');
+					memcpy(console.buf,console.prevBuf,UART_BUF_SIZE);
+					UART_putstrln(0,SWT[2]);
+					for(i = 0;i<UART_BUF_SIZE && console.prevBuf[i];i++)
+						UART_SendByte(console.prevBuf[i]);
+				}
+				break;
 			default:
 				if(bt>31){
 					console.buf[console.idx++] = bt;
@@ -302,7 +256,6 @@ void UART_Con_Mash(){
 		if(!strcmp(console.buf,"restart")){
 			SysCntrl.power_stage = 41;
 			UART_putstrln(1,"CPU restarted...");
-			//UART_putstrln(0);
 		}
 		else
 		if(!strcmp(console.buf,"autoboot")){
@@ -322,14 +275,12 @@ void UART_Con_Mash(){
 			EnableSPI();
 			FlashDump(1);
 			DisableSPI();
-			UART_putstrln(1,EMPTY_SYM);
 		}
 		else
 		if(!strcmp(console.buf,"dump1")){
 			EnableSPI();
 			FlashDump(0);
 			DisableSPI();
-			UART_putstrln(1,EMPTY_SYM);
 		}
 		else
 		if(!strcmp(console.buf,"power")){
@@ -358,9 +309,14 @@ void UART_Con_Mash(){
 			writeConfig();
 		}
 		else
+		if(!strcmp(console.buf,""))
+			;
+		else{
 			UART_putstrln(1,"Unknown command: ");
-		UART_putstrln(1,EMPTY_SYM);
-		UART_putstrln(0,">>");
+			UART_putstrln(1,EMPTY_SYM);
+		}
+		// >>
+		UART_putstrln(0,SWT[2]);
 		refreshConsoleBuffer();
 
 	}
