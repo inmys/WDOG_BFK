@@ -285,8 +285,6 @@ void memoryMenu(){
 	UART_putstrln(1,buf);
 	sprintf(buf,"Auto boot: %s \r\nLaunch is %s",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
 	UART_putstrln(1,buf);
-	sprintf(buf,"DEBUG: CPU Power stage: %d",SysCntrl.power_stage);
-	UART_putstrln(1,buf);
 }
 
 void writeConfig(){

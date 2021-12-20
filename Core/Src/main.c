@@ -184,13 +184,15 @@ void userInput(uint8_t anykey){
 
 			switch(bt){
 			case 127:
-				UART_SendByte(0x8);
-				UART_SendByte(0x20); //0x20 - ascii space
-				UART_SendByte(0x8);
+				if(console.idx>0){
+					UART_SendByte(0x8);
+					UART_SendByte(0x20); //0x20 - ascii space
+					UART_SendByte(0x8);
 
-				console.buf[console.idx] = 0;
-				console.idx--;
-				bt = 0;
+					console.buf[console.idx] = 0;
+					console.idx--;
+					bt = 0;
+				}
 				break;
 			case '\n':
 				continue;
