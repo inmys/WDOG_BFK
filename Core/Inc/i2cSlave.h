@@ -22,8 +22,8 @@ void i2cSM();
 #define I2C_WDOG SysCntrl.Watchdog<<I2C_WDOG_POS
 #define I2C_INTEN_POS 4
 #define I2C_INTEN SysCntrl.intEn<<I2C_INTEN_POS
-#define I2C_DORESET (SysCntrl.PowerState==41)<<5
-#define I2C_DOPWROFF (SysCntrl.PowerState==11)<<6
+#define I2C_DORESET (SysCntrl.power_stage==41)<<5
+#define I2C_DOPWROFF (SysCntrl.power_stage==11)<<6
 #define I2C_BOOTLDR_POS 7
 #define I2C_BOOTLDR SysCntrl.bootloaderMode<<I2C_BOOTLDR_POS
 

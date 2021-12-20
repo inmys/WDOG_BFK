@@ -283,7 +283,7 @@ void memoryMenu(){
 	clearBuf(buf);
 	sprintf(buf,"Watchdog: %s",SysCntrl.Watchdog?"Enabled":"Disabled");
 	UART_putstrln(1,buf);
-	sprintf(buf,"Auto boot: %s \r\nLaunch is %s",SysCntrl.PowerState?"On":"Off by key",(SysCntrl.pgin)?"allowed":"prohibited");
+	sprintf(buf,"Autoboot: %s",SysCntrl.Autoboot?"On":"Off by key");
 	UART_putstrln(1,buf);
 }
 

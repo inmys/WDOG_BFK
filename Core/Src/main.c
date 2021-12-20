@@ -200,7 +200,6 @@ void userInput(uint8_t anykey){
 			case '\r':
 				console.buf[console.idx++] = 0;
 				console.cmd_flag = 1;
-				memcpy(console.prevBuf,console.buf,UART_BUF_SIZE);
 			case 27:
 				ReadUartNonBlock(&bt, 1);
 				ReadUartNonBlock(&bt, 1);
@@ -231,11 +230,11 @@ void refreshConsoleBuffer(){
 	uint8_t i;
 	for(i=0;i<UART_BUF_SIZE;i++)
 		console.buf[i] = 0;
-
 	console.cmd_flag = 0;
-	//console.result = 0;
+	console.bootStage = 0;
 	console.idx = 0;
-//	memset(&console,0,sizeof(console));
+	console.BootTimeout = 0;
+
 }
 
 void clearUartConsole(){
@@ -261,15 +260,15 @@ void UART_Con_Mash(){
 		}
 		else
 		if(!strcmp(console.buf,"autoboot")){
-			SysCntrl.PowerState =(SysCntrl.PowerState)?0:1;
-			sprintf(buf,"Autoboot is switched %s",SWT[SysCntrl.PowerState]);
+			SysCntrl.Autoboot_Saved =(SysCntrl.Autoboot_Saved)?0:1;
+			sprintf(buf,"Autoboot is switched %s",SWT[SysCntrl.Autoboot]);
 			UART_putstrln(1,buf);
 			writeConfig();
 		}
 		else
 		if(!strcmp(console.buf,"poweroff")){
 			SysCntrl.power_stage = 100;
-			SysCntrl.PowerState = ~SysCntrl.PowerState;
+			SysCntrl.Autoboot = 0;
 			UART_putstrln(1,"CPU turn off...");
 		}
 		else
@@ -285,14 +284,9 @@ void UART_Con_Mash(){
 			DisableSPI();
 		}
 		else
-		if(!strcmp(console.buf,"power")){
+		if(!strcmp(console.buf,"power"))
 			checkPowerLevels(1);
-		}
-		else
-		if(!strcmp(console.buf,"info")){
-			memoryMenu(1);
-			POST();
-		}
+		else if(!strcmp(console.buf,"info")) memoryMenu(1);
 		/*else
 		if(!strcmp(console.buf,"wdog")){
 			sprintf(buf,"WDOG timer: %d",SysCntrl.WatchdogTimer);
@@ -304,7 +298,7 @@ void UART_Con_Mash(){
 			UART_putstrln(1,buf);
 		}
 		else
-			// Нужно ли меня флешки на лету?
+			// Нужно ли менять флешки на лету?
 		if(!strcmp(console.buf,"toggleMem")){
 			SysCntrl.BootFlash = ~SysCntrl.BootFlash;
 			SysCntrl.MainFlash = ~SysCntrl.MainFlash;
@@ -319,8 +313,8 @@ void UART_Con_Mash(){
 		}
 		// >>
 		UART_putstrln(0,SWT[2]);
+		memcpy(console.prevBuf,console.buf,UART_BUF_SIZE);
 		refreshConsoleBuffer();
-
 	}
 
 }
@@ -330,11 +324,11 @@ void UART_Con_Mash(){
 
 uint8_t ByteToHEX(uint8_t bt){
 
-if(bt<10)
-	return bt+'0';
-if(bt<=0xf)
-	return bt+0x37;
-return 'X';
+	if(bt<10)
+		return bt+'0';
+	if(bt<=0xf)
+		return bt+0x37;
+	return 'X';
 
 }
 
@@ -360,7 +354,7 @@ int main(void)
 	SysCntrl.MainFlash = 0;
 	SysCntrl.FWStatus = 0;
 	SysCntrl.Watchdog = 1;
-	SysCntrl.PowerState = 1;
+	SysCntrl.Autoboot_Saved = 1;
 	SysCntrl.Magic = 0b10110;
 	writeConfig();
   }
@@ -370,9 +364,9 @@ int main(void)
   SysCntrl.i2c_bt[1] = 0;
   SysCntrl.rx_head = 0;
   SysCntrl.rx_tail = 0;
-  hi2c.registers[0] = 0xfd;
-  hi2c.registers[1] = 0xfaf;
-  hi2c.registers[2] = 0x31;
+  SysCntrl.MS_counter = 0;
+  SysCntrl.Autoboot = SysCntrl.Autoboot_Saved;
+  console.SecondsToStart = 10;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -396,7 +390,6 @@ int main(void)
   SysCntrl.i2c_bt[0] = 0x3;
   SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,SysCntrl.i2c_bt,2,1); // All outputs
   SysCntrl.i2c_bt[0] = 0x1;
-
   SPI_Reset(0);
   SPI_Reset(1);
   hi2c.state = 0;
@@ -404,9 +397,9 @@ int main(void)
   USB_EnableGlobalInt(&hUsbDeviceFS);
   refreshConsoleBuffer();
   DisableSPI();
+  char buf[25];
   clearHi2c();
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -417,10 +410,10 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  asm("nop");
-
 	  if(SysCntrl.TimerTick) {
 		  SysCntrl.TimerTick = 0;
-		  switch(SysCntrl.MS_counter % 10) {
+		  // 20 мс разрешение
+		  switch(SysCntrl.MS_counter % 20) {
 		  case 0:
 			 if(SysCntrl.power_stage == 51)
 				 switch(hUsbDeviceFS.dev_state){
@@ -429,22 +422,21 @@ int main(void)
 					break;
 					}
 			  break;
-		  case 1:
+		  case 4:
 			  if(SysCntrl.XmodemMode == 0){
-				 // UART_putstrln("IN !XmodemMode");
 				  PowerSM();
 			  }
 			  break;
-		  case 2:
+		  case 6:
 			  i2cSM();
 			  break;
-		  case 3:
+		  case 10:
 			checkPowerLevels(0);
 			 break;
-		  case 4:
+		  case 14:
 			SysCntrl.WatchdogTimer++;
 			break;
-		  case 5:
+		  case 16:
 			  if(SysCntrl.XmodemMode)
 				  Xmodem_SPI();
 		  break;

@@ -50,7 +50,7 @@ struct SSysCntrl{
 			uint8_t MainFlash:1; // 0/1
 			uint8_t FWStatus:2;
 			uint8_t BootAttempt:2;
-			uint8_t PowerState:1; // 0 - off by key / 1 - on
+			uint8_t Autoboot_Saved:1; // 0 - off by key / 1 - on
 			uint8_t Magic:5; // 10110 - OK
 			};
 	};
@@ -58,7 +58,6 @@ struct SSysCntrl{
 	union{
 		uint16_t IOStatus;
 		struct{
-			uint8_t pgin:1;
 			uint8_t pwrbtn:1;
 			uint8_t rstbtn:1;
 			uint8_t stmbootsel:1;
@@ -66,6 +65,7 @@ struct SSysCntrl{
 			uint8_t Watchdog:1; //  0/1
 			uint8_t intEn:1;
 			uint8_t bootloaderMode:1; // 0/1
+			uint8_t Autoboot:1;
 			};
 		};
 		uint16_t WatchdogTimer;
@@ -79,7 +79,9 @@ struct SConsole{
 	uint8_t cmd_flag;
 	uint8_t result;
 	uint8_t cmdCode;
-	uint8_t args[3];
+	uint8_t bootStage:1;
+	uint8_t BootTimeout;
+	uint8_t SecondsToStart;
 } console;
 
 

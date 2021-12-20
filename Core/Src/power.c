@@ -23,11 +23,11 @@ void PowerSM() {
 		//CPU is turned off & is not planing to going on
 		case 100:
 			ClrI2C_Mask(0b11111111);
-
-			if(BootMenu() || SysCntrl.pwrbtn || SysCntrl.PowerState)
+			if(BootMenu() || SysCntrl.pwrbtn || (SysCntrl.Autoboot && !console.SecondsToStart))
 				SysCntrl.power_stage = 0;
 			break;
 		case 0:
+			UART_putstrln(1,"Booting...");
 			 if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
 				 SysCntrl.BootFlash = SysCntrl.MainFlash;
 			 else{
@@ -53,36 +53,33 @@ void PowerSM() {
 				  SetI2C_Mask(FLASH_EN_0);
 				  ClrI2C_Mask(FLASH_EN_1);
 			  }
-			if(SysCntrl.pgin){
-				SysCntrl.power_stage = 10;
-				SysCntrl.PowerTimer = 2;
-			}
+			 SysCntrl.power_stage = 10;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 1
 		case 10:
 			SetI2C_Mask(TRST_N|EJ_TRST_N);
 			ClrI2C_Mask(RESET_N|CPU_RST_N);
-			SysCntrl.PowerTimer  = 2;
+			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 20;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 2
 		case 20:
 			SetI2C_Mask(ENA_LV_DCDC);
-			SysCntrl.PowerTimer  = 20;
+			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 30;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 3
 		case 30:
 			SetI2C_Mask(ENA_HV_DCDC);
 			// SUS_S3# set
-			SysCntrl.PowerTimer  = 10;
+			SysCntrl.PowerTimer  = 5;
 			SysCntrl.power_stage = 40;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 4
 		case 40:
 			SetI2C_Mask(CPU_RST_N);
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
-			SysCntrl.PowerTimer  = 100;
+			SysCntrl.PowerTimer  = 50;
 			SysCntrl.power_stage = 51;
 			//WATHCDOG HARD OFF HERE!!!
 			SysCntrl.Watchdog = 0;
@@ -99,16 +96,18 @@ void PowerSM() {
 				SysCntrl.WatchdogTimer = 0;
 			}
 			if(SysCntrl.rstbtn){
-				SysCntrl.PowerTimer  = 40;
+				UART_putstrln(1,"reseting CPU");
+				SysCntrl.power_stage = 21;
+			}
+			if(SysCntrl.pwrbtn){
+				UART_putstrln(1,"turning off CPU");
 				SysCntrl.power_stage = 41;
 			}
-			if(SysCntrl.pwrbtn)
-				SysCntrl.power_stage = 11;
 		break;
-		// State: CPU is on & requested soft reset
+		// State: CPU is on & requested soft shutdown
 		case 41:
-			SysCntrl.PowerTimer  = 500;
-			SysCntrl.power_stage = 21;
+			SysCntrl.PowerTimer  = 5;
+			SysCntrl.power_stage = 11;
 		break;
 		// initiating hard reset
 		case 21:
@@ -116,9 +115,11 @@ void PowerSM() {
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 51;
+
 		break;
 		case 11:
-			SysCntrl.PowerTimer = 500;
+			refreshConsoleBuffer();
+			SysCntrl.PowerTimer = 25;
 			SysCntrl.power_stage = 100;
 		}
 }
@@ -154,15 +155,6 @@ void checkPowerLevels(uint8_t output){
 	char buf[10] = {0};
 	uint8_t pinState;
 
-
-	pinState = HAL_GPIO_ReadPin(PGIN_PIN);
-
-	SysCntrl.pgin = (pinState)?0:1;
-	if(output){
-		sprintf(buf,"PGIN: %d",SysCntrl.pgin);
-		UART_putstrln(1,buf);
-	}
-
 	pinState = HAL_GPIO_ReadPin(PWRBTN_PIN);
 	if((pinState&0b00000001)!=SysCntrl.pwrbtn){
 		pinState = debouncer(PWRBTN_PIN);
@@ -188,92 +180,103 @@ void checkPowerLevels(uint8_t output){
 		UART_putstrln(1,buf);
 	}
 
-	/*pinState = HAL_GPIO_ReadPin(STMBOOTSEL_PIN);
-	if((pinState&0b00000001)!=SysCntrl.stmbootsel){
-		pinState = debouncer(STMBOOTSEL_PIN);
-		if(pinState&0b10000000)
-			SysCntrl.stmbootsel = pinState&0b00000001;
-	}
-
-	if(output){
-		sprintf(buf,"STMBOOTSEL: %d",SysCntrl.stmbootsel);
-		UART_putstrln(1,buf);
-	}
-	*/
 }
 
 
 
 int BootMenu(){
 	uint8_t i,result = 0;
-	clearUartConsole();
-
-	UART_putstrln(1,WELCOME_SCREEN);
-	memoryMenu();
-	UART_putstrln(0,"CPU FW status:");
-	UART_putstrln(1,CS_STASTUS_LABELS[SysCntrl.FWStatus]);
-	for(i=0;i<10;i++)
-		UART_putstrln(1,menu[i]);
-	UART_putstrln(0,">>");
-
-	refreshConsoleBuffer();
-	while(!console.cmd_flag)
-		userInput(0);
-	uint8_t cmd = atoi(console.buf)-1;
-	switch(cmd){
-	case 0:
-		UART_putstrln(1,"Booting...");
-		result = 1;
-		break;
-	case 1:
-		// Update 1st flash
-		if(SysCntrl.MainFlash == 0){
-			UART_putstrln(1,text[3]);
-			// ERROR
+	char buf[25];
+	if(!console.bootStage){
+		clearUartConsole();
+		refreshConsoleBuffer();
+		UART_putstrln(1,WELCOME_SCREEN);
+		memoryMenu();
+		UART_putstrln(0,"CPU FW status:");
+		UART_putstrln(1,CS_STASTUS_LABELS[SysCntrl.FWStatus]);
+		for(i=0;i<10;i++)
+			UART_putstrln(1,menu[i]);
+		if(SysCntrl.Autoboot){
+			sprintf(buf,"Starting after %d sec",console.SecondsToStart);
+			UART_putstrln(1,buf);
 		}
-		else{
-			SysCntrl.active_cs = 0;
-			Xmodem_Init();
-		}
-	break;
-	case 2:
-		// Update 1st flash
-		if(SysCntrl.MainFlash == 1){
-			UART_putstrln(1,text[3]);
-			// ERROR
-		}
-		else{
-			SysCntrl.active_cs = 1;
-			Xmodem_Init();
-		}
-	break;
-	case 3:
-		// Toggle main flash
-		SysCntrl.MainFlash = ~SysCntrl.MainFlash;
-		writeConfig();
-	case 4:
-		// Toggle boot flash
-		SysCntrl.BootFlash = ~SysCntrl.BootFlash;
-	break;
-	case 5:
-		// Toggle watchdog
-		SysCntrl.Watchdog = ~SysCntrl.Watchdog;
-	break;
-	case 6:
-		// Set FW status to CONFIRMED
-		SysCntrl.FWStatus = CONFIRMED;
-	break;
-	case 7:
-		// Set FW status to UPDATED
-		SysCntrl.FWStatus = UPDATED;
-	break;
-	case 8:
-		// Set FW status to BAD
-		SysCntrl.FWStatus = BAD;
-	break;
-
+		console.bootStage = 1;
+		console.BootTimeout = 50;
 	}
-	refreshConsoleBuffer();
+	if(SysCntrl.Autoboot){
+		console.BootTimeout--;
+		if(!console.BootTimeout){
+
+			console.bootStage = 0;
+			console.SecondsToStart--;
+		}
+	}
+
+	if(!console.cmd_flag)
+		userInput(1);
+	else{
+		uint8_t cmd = atoi(console.buf)-1;
+		if(cmd == -1){
+			UART_putstrln(0,"AUTOBOOT TURNED OFF");
+			SysCntrl.Autoboot = 0;
+		}
+		UART_putstrln(1,NULL);
+		switch(cmd){
+		case 0:
+			result = 1;
+			break;
+		case 1:
+			// Update 1st flash
+			if(SysCntrl.MainFlash == 0){
+				UART_putstrln(1,text[3]);
+				// ERROR
+			}
+			else{
+				SysCntrl.active_cs = 0;
+				Xmodem_Init();
+			}
+		break;
+		case 2:
+			// Update 1st flash
+			if(SysCntrl.MainFlash == 1){
+				UART_putstrln(1,text[3]);
+				// ERROR
+			}
+			else{
+				SysCntrl.active_cs = 1;
+				Xmodem_Init();
+			}
+		break;
+		case 3:
+			// Toggle main flash
+			SysCntrl.MainFlash = ~SysCntrl.MainFlash;
+			writeConfig();
+		break;
+		case 4:
+			// Toggle boot flash
+			SysCntrl.BootFlash = ~SysCntrl.BootFlash;
+		break;
+		case 5:
+			// Toggle watchdog
+			SysCntrl.Watchdog = ~SysCntrl.Watchdog;
+		break;
+		case 6:
+			// Set FW status to CONFIRMED
+			SysCntrl.FWStatus = CONFIRMED;
+		break;
+		case 7:
+			// Set FW status to UPDATED
+			SysCntrl.FWStatus = UPDATED;
+		break;
+		case 8:
+			// Set FW status to BAD
+			SysCntrl.FWStatus = BAD;
+		break;
+
+		}
+		console.bootStage = 0;
+		SysCntrl.Autoboot = 0;
+	}
 	return result;
 }
 
