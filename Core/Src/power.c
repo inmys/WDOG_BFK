@@ -213,7 +213,7 @@ int BootMenu(){
 	}
 
 	if(!console.cmd_flag)
-		userInput(1);
+		userInput(0);
 	else{
 		uint8_t cmd = atoi(console.buf)-1;
 		if(cmd == -1){
@@ -223,6 +223,8 @@ int BootMenu(){
 		UART_putstrln(1,NULL);
 		switch(cmd){
 		case 0:
+			//clearUartConsole();
+			refreshConsoleBuffer();
 			result = 1;
 			break;
 		case 1:

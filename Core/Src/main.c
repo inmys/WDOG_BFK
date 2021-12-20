@@ -305,9 +305,10 @@ void UART_Con_Mash(){
 			writeConfig();
 		}
 		else
-		if(!strcmp(console.buf,""))
+		if(!strcmp(console.buf,"") || !strcmp(console.buf,"\n"))
 			;
 		else{
+			UART_putstrln(1, console.buf);
 			UART_putstrln(1,"Unknown command: ");
 			UART_putstrln(1,EMPTY_SYM);
 		}
@@ -437,8 +438,10 @@ int main(void)
 			SysCntrl.WatchdogTimer++;
 			break;
 		  case 16:
-			  if(SysCntrl.XmodemMode)
+			  if(SysCntrl.XmodemMode){
 				  Xmodem_SPI();
+				  SysCntrl.MS_counter = 15;
+			  }
 		  break;
 		  }
 	  }
