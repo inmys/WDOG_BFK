@@ -21,7 +21,7 @@
 #define BUF_LEN 45
 #define GPIO_EXPANDER_ADDR 0x20<<1
 
-#define XMODEM_TIME_1SEC (1000)
+#define XMODEM_TIME_1SEC (50)
 
 #define XMODEM_STATE_INIT (0)
 #define XMODEM_STATE_S0 (1)

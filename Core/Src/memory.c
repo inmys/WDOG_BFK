@@ -160,9 +160,6 @@ void Xmodem_SPI(){
 		}
 		break;
 	case XMODEM_STATE_S0: // SOH code received
-		//uint8_t SPI_rxbuf[1024];
-		//alt_u32 X_idx;
-		//alt_u32 bt_count;
 		result = ReadUartNonBlock(&SysCntrl.SPI_rxbuf[SysCntrl.X_idx],SysCntrl.bt_count);
 		if(result>0) {
 			SysCntrl.X_idx += result;
@@ -232,7 +229,7 @@ void Xmodem_Init(){
 	EnableSPI();
 	SysCntrl.XmodemMode = 1;
 	SysCntrl.XmodemState = XMODEM_STATE_INIT;
-	SysCntrl.TryCounter = 100;
+	SysCntrl.TryCounter = 60;
 	SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
 	UART_putstrln(0,"C");
 }

@@ -22,13 +22,13 @@ void PowerSM() {
 		switch(SysCntrl.power_stage) {
 		// State: CPU is turned off & power is off
 		//CPU is turned off & is not planing to going on
-		case 100:
+		case 0:
 			ClrI2C_Mask(0b11111111);
 
 			if(BootMenu() || SysCntrl.pwrbtn || (SysCntrl.Autoboot && !console.SecondsToStart))
-				SysCntrl.power_stage = 0;
+				SysCntrl.power_stage = 1;
 			break;
-		case 0:
+		case 1:
 			UART_putstrln(1,"Booting...");
 			if(!SysCntrl.UserChangedBootLogic)
 				if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
@@ -47,9 +47,9 @@ void PowerSM() {
 						writeConfig();
 					}
 				}
-			 SysCntrl.power_stage = 9;
+			 SysCntrl.power_stage = 2;
 		break;
-		case 9:
+		case 2:
 			 if(SysCntrl.BootFlash){
 				  SetI2C_Mask(FLASH_EN_1);
 				  ClrI2C_Mask(FLASH_EN_0);
@@ -58,73 +58,72 @@ void PowerSM() {
 				  SetI2C_Mask(FLASH_EN_0);
 				  ClrI2C_Mask(FLASH_EN_1);
 			  }
-			 SysCntrl.power_stage = 10;
+			 SysCntrl.power_stage = 3;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 1
-		case 10:
+		case 3:
 			SetI2C_Mask(TRST_N|EJ_TRST_N);
 			ClrI2C_Mask(RESET_N|CPU_RST_N);
 			SysCntrl.PowerTimer  = 1;
-			SysCntrl.power_stage = 20;
+			SysCntrl.power_stage = 4;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 2
-		case 20:
+		case 4:
 			SetI2C_Mask(ENA_LV_DCDC);
 			SysCntrl.PowerTimer  = 1;
-			SysCntrl.power_stage = 30;
+			SysCntrl.power_stage = 5;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 3
-		case 30:
+		case 5:
 			SetI2C_Mask(ENA_HV_DCDC);
 			// SUS_S3# set
 			SysCntrl.PowerTimer  = 5;
-			SysCntrl.power_stage = 40;
+			SysCntrl.power_stage = 6;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 4
-		case 40:
+		case 6:
 			SetI2C_Mask(CPU_RST_N);
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 50;
-			SysCntrl.power_stage = 51;
+			SysCntrl.power_stage = 7;
 			SysCntrl.WatchdogTimer = 0;
 			UART_putstrln(0,SWT[2]);
 		break;
 		// State: CPU is on & power is on NORMAL STATE
-		case 51:
-
+		case 7:
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
 			SysCntrl.PowerTimer  = 100;
-			if((SysCntrl.WatchdogConsole && SysCntrl.WatchdogBootAlt) && (SysCntrl.WatchdogTimer > 100*10)  ){ // 10 seconds
-				SysCntrl.power_stage = 21;
+			if(SysCntrl.rstbtn ||((SysCntrl.WatchdogConsole && SysCntrl.WatchdogBootAlt) && (SysCntrl.WatchdogTimer > 100*10))  ){ // 10 seconds
+				SysCntrl.power_stage = 9;
 				SysCntrl.WatchdogTimer = 0;
-			}
-			if(SysCntrl.rstbtn){
-				UART_putstrln(1,"resetting CPU");
-				SysCntrl.power_stage = 21;
+				UART_putstrln(1,"restarting CPU");
 			}
 			if(SysCntrl.pwrbtn){
 				UART_putstrln(1,"turning off CPU");
-				SysCntrl.power_stage = 41;
+				SysCntrl.power_stage = 8;
 			}
 		break;
 		// State: CPU is on & requested soft shutdown
-		case 41:
-			SysCntrl.PowerTimer  = 5;
-			SysCntrl.power_stage = 11;
+		case 8:
+			SysCntrl.PowerTimer  = 50;
+			SysCntrl.power_stage = 10;
 		break;
 		// initiating hard reset
-		case 21:
+		case 9:
 			SetI2C_Mask(CPU_RST_N);
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 1;
-			SysCntrl.power_stage = 51;
+			SysCntrl.power_stage = 7;
 
 		break;
-		case 11:
+		case 10:
 			ClearConsoleBuffer();
 			SysCntrl.PowerTimer = 25;
-			SysCntrl.power_stage = 100;
+			SysCntrl.power_stage = 0;
+		break;
+		default:
+			UART_putstrln(1,"Unknown powerstate");
 		}
 }
 
@@ -183,7 +182,6 @@ void checkPowerLevels(){
 
 int BootMenu(){
 	uint8_t i,result = 0;
-	uint8_t cmd;
 	char buf[25];
 	const char* menu[] = {"Select menu item","1) Boot","2) Update flash 1","3) Update flash 2","4) Toggle main flash",
 			"5) Toggle boot flash", "6) Toggle watchdog","7) Set FW status to: CONFIRMED","8) Set FW status to: UPDATED","9) Set FW status to: BAD","10) Update MCU","Enter selected number and press <Enter>"};
@@ -211,12 +209,12 @@ int BootMenu(){
 			console.bootMenuStage = 2;
 		break;
 	case 2:
-		cmd = atoi(console.buf);
+		console.cmd = atoi(console.buf);
 		UART_putstrln(1,NULL);
 		ClearConsoleBuffer();
-		if(cmd>1){
+		if(console.cmd>1){
 			console.bootMenuStage = 3;
-			UART_putstrln(1,menu[cmd]);
+			UART_putstrln(1,menu[console.cmd]);
 			UART_putstrln(0,text[4]);
 			}
 		else
@@ -224,7 +222,7 @@ int BootMenu(){
 		break;
 
 	case 3:
-		userInput(0);
+		userInput(1);
 		if(console.cmd_flag)
 			console.bootMenuStage = 4;
 		break;
@@ -236,7 +234,7 @@ int BootMenu(){
 		break;
 	case 5:
 		UART_putstrln(1,NULL);
-		switch(cmd){
+		switch(console.cmd){
 			case 1:
 				ClearConsoleBuffer();
 				result = 1;
@@ -246,9 +244,7 @@ int BootMenu(){
 				if(SysCntrl.MainFlash == 0){
 					UART_putstrln(1,text[3]);
 					ClearConsoleBuffer();
-					while(!console.cmd_flag)
-						userInput(1);
-					UART_putstrln(1,NULL);
+					console.bootMenuStage = 7;
 				}
 				else{
 					SysCntrl.active_cs = 0;
@@ -260,9 +256,7 @@ int BootMenu(){
 				if(SysCntrl.MainFlash == 1){
 					UART_putstrln(1,text[3]);
 					ClearConsoleBuffer();
-					while(!console.cmd_flag)
-						userInput(1);
-					UART_putstrln(1,NULL);
+					console.bootMenuStage = 7;
 				}
 				else{
 					SysCntrl.active_cs = 1;
@@ -310,6 +304,11 @@ int BootMenu(){
 		case 6:
 			SysCntrl.Autoboot = 0;
 			console.bootMenuStage = 0;
+			break;
+		case 7:
+			userInput(1);
+			if(console.cmd_flag)
+				console.bootMenuStage = 0;
 			break;
 	}
 

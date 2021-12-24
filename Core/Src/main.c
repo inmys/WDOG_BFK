@@ -271,7 +271,7 @@ void UART_Con_Mash(){
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
-			SysCntrl.power_stage = 21;
+			SysCntrl.power_stage = 9;
 			UART_putstrln(1,"CPU restarted...");
 		}
 		else
@@ -283,7 +283,7 @@ void UART_Con_Mash(){
 		}
 		else
 		if(!strcmp(console.buf,"poweroff")){
-			SysCntrl.power_stage = 100;
+			SysCntrl.power_stage = 0;
 			SysCntrl.Autoboot = 0;
 			UART_putstrln(1,"CPU turn off...");
 		}
@@ -375,7 +375,7 @@ int main(void)
 	SysCntrl.Magic = 0b10110;
 	writeConfig();
   }
-  SysCntrl.power_stage = 100;
+  SysCntrl.power_stage = 0;
   // GPIO extender address
   SysCntrl.i2c_bt[0] = 0x1;
   SysCntrl.i2c_bt[1] = 0;
@@ -434,7 +434,7 @@ int main(void)
 		  // 20 мс разрешение
 		  switch(SysCntrl.MS_counter % 20) {
 		  case 0:
-			 if(SysCntrl.power_stage == 51)
+			 if(SysCntrl.power_stage == 7)
 				 switch(hUsbDeviceFS.dev_state){
 					 case USBD_STATE_CONFIGURED:
 						 UART_Con_Mash();
@@ -442,7 +442,7 @@ int main(void)
 					}
 			  break;
 		  case 4:
-			  if(SysCntrl.XmodemMode == 0)
+			  if(!SysCntrl.XmodemMode)
 				  PowerSM();
 		  break;
 		  case 6:
