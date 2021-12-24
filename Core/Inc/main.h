@@ -29,8 +29,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0xx_hal.h"
-#include "text.h"
-#include "Structs.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #pragma once
@@ -38,7 +37,18 @@ extern "C" {
 
 void EnableSPI();
 void DisableSPI();
+void DFUMode();
+void SetI2C_Mask(uint8_t);
+void ClrI2C_Mask(uint8_t);
+void Set_CS(uint8_t);
+void Clr_CS(uint8_t);
 
+void UART_putstrln(uint8_t,char*);
+void UART_SendByte(uint8_t);
+int ReadUartNonBlock();
+void userInput(uint8_t);
+void ClearConsoleBuffer();
+uint8_t ByteToHEX(uint8_t);
 
 /* USER CODE END Includes */
 

@@ -47,13 +47,9 @@ void i2cSM(){
 	   }
 	}
 	else{
-		sprintf(buf,"state: %d address: %x",hi2c.state, hi2c.address);
-		if(hi2c.state!=0){
-			;//UART_putstrln(buf);
-		}
 		switch(hi2c.state){
 		case 1:
-			;//UART_putstrln("STM->Baikal"); //i2cget
+			UART_putstrln(1,"i2c:STM->Baikal"); //i2cget
 			hi2c.state = 2;
 			HAL_GPIO_WritePin(CPU_INT,0);
 			break;
@@ -62,17 +58,13 @@ void i2cSM(){
 			switch(hi2c.address){
 				// Input Port Registers
 				case 0:
-					byte = I2C_RREG0;
-					sprintf(buf,"REG#0 DATA: %u",byte);
-					;//UART_putstrln(buf);
+					byte = 0xDA;
 				break;
 				case 1:
-					byte = I2C_RREG1;
-					sprintf(buf,"REG#1 DATA: %u",byte);
-					;//UART_putstrln(buf);
+					byte = 0xBE;
 				break;
 				case 2:
-					byte = I2C_RREG2;
+					byte = 0xEF;
 				break;
 				// Configuration Registers
 				case 12:
@@ -86,38 +78,23 @@ void i2cSM(){
 				break;
 			}
 			writeWord(byte);
-			//writeWord(MazzyStar[hi2c.address]);
-
 			break;
 
 		case 3:
-			//UART_putstrln("Baikal->STM"); //i2cset
+			UART_putstrln(1,"i2c:Baikal->STM"); //i2cset
 			hi2c.state = 4;
 			break;
 		case 4:
 			byte = readWord();
+
 			switch(hi2c.address){
 				// Input Port Registers
 				case 0:
 				// Configuration Registers
 				case 3:
-					SysCntrl.bootloaderMode = (byte&(1<<I2C_BOOTLDR_POS))?1:0;
-					SysCntrl.stmbootsel = (byte&(1<<I2C_BOOTPIN_POS))?1:0;
-					if(SysCntrl.stmbootsel){
-						GPIO_InitStruct.Pin = GPIO_PIN_8;
-						GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-						HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-						HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
-					}
-					else{
-						GPIO_InitStruct.Pin = GPIO_PIN_8;
-						GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-						GPIO_InitStruct.Pull = GPIO_NOPULL;
-						HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-					}
 					if((byte&(1<<I2C_WDOG_POS))?1:0)
 						SysCntrl.WatchdogTimer = 10000;
-					SysCntrl.intEn = (byte&(1<<I2C_INTEN_POS))?1:0;
+					SysCntrl.intEn = 0;
 					writeConfig();
 				break;
 				case 4:

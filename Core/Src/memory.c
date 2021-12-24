@@ -1,13 +1,11 @@
 #include "structs.h"
+#include "main.h"
 #include "memory.h"
 #include "stdio.h"
-
+#include "text.h"
 
 extern SPI_HandleTypeDef hspi1;
 extern void MX_SPI1_Init(void);
-
-
-#define CORRECTOR 1
 
 // Sector - 64
 uint8_t SPI_ReadStatus() {
@@ -52,8 +50,6 @@ void Flash_PageWrite() {
 
 	}while(SPI_ReadStatus()&1);
 
-	//if((Uart_Cntrl.SPI_address & 0xffff) == 0)
-//		Flash_SectorErase(Uart_Cntrl.SPI_address);
 
 		Flash_WriteEnable();
 	if((SysCntrl.SPI_address & 0xffff) == 0)
@@ -194,6 +190,9 @@ void Xmodem_SPI(){
 			else
 				if(bt == 0x04) {
 					// Все страницы зашили
+						SysCntrl.FWStatus = UPDATED;
+						SysCntrl.BootAttempt = 3;
+						writeConfig();
 						UART_SendByte(0x06); // ACK
 						for(;SysCntrl.SPI_page_idx<128; SysCntrl.SPI_page_idx++)
 							SysCntrl.SPI_page[SysCntrl.SPI_page_idx] = 0;
@@ -278,12 +277,12 @@ void memoryMenu(){
 	sprintf(buf,"CPU boot flash #%d",SysCntrl.BootFlash+1);
 	UART_putstrln(1,buf);
 	clearBuf(buf);
-	sprintf(buf,"CPU boot attempt: %d",SysCntrl.BootAttempt);
+	sprintf(buf,"Boot attempt:%d/4",SysCntrl.BootAttempt+1);
 	UART_putstrln(1,buf);
 	clearBuf(buf);
-	sprintf(buf,"Watchdog: %s",SysCntrl.Watchdog?"Enabled":"Disabled");
+	sprintf(buf,"Watchdog:%s",(SysCntrl.WatchdogConsole&&SysCntrl.WatchdogBootAlt)?SWT[0]:SWT[1]);
 	UART_putstrln(1,buf);
-	sprintf(buf,"Autoboot: %s",SysCntrl.Autoboot?"On":"Off by key");
+	sprintf(buf,"Autoboot:%s",SysCntrl.Autoboot?"On":"Off by key");
 	UART_putstrln(1,buf);
 }
 

@@ -18,11 +18,11 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
-#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "main.h"
+#include "usb_device.h"
 #include "i2c.h"
 #include "i2cSlave.h"
 #include "usbd_cdc_if.h"
@@ -31,6 +31,7 @@
 #include "POST.h"
 #include "power.h"
 #include "POST.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -103,12 +104,18 @@ void DisableSPI() {
 
 
 void DFUMode(){
+	IWDG_HandleTypeDef hiwdg;
+	hiwdg.Instance = IWDG;
+	hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
+	hiwdg.Init.Window = 20;
+	hiwdg.Init.Reload = 20;
 	GPIO_InitTypeDef GPIO_InitStruct = {0};
 	GPIO_InitStruct.Pin = GPIO_PIN_8;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+	__HAL_IWDG_START(&hiwdg);
 }
 /* USER CODE END PFP */
 
@@ -183,7 +190,6 @@ int ReadUartNonBlock(uint8_t *buf,int size) {
 
 void userInput(uint8_t anykey){
 	uint8_t i,bt;
-	char buf[4] = {0};
 	do{
 		console.result = ReadUartNonBlock(&bt, 1);
 		if(console.result) {
@@ -218,9 +224,10 @@ void userInput(uint8_t anykey){
 						UART_SendByte(' ');
 					UART_SendByte('\r');
 					memcpy(console.buf,console.prevBuf,UART_BUF_SIZE);
+					console.idx = console.prevIdx;
 					UART_putstrln(0,SWT[2]);
 					for(i = 0;i<UART_BUF_SIZE && console.prevBuf[i];i++)
-						UART_SendByte(console.prevBuf[i]);
+						UART_SendByte(console.buf[i]);
 				}
 				break;
 			default:
@@ -236,12 +243,12 @@ void userInput(uint8_t anykey){
 	}while(console.result && (!console.cmd_flag));
 
 }
-void refreshConsoleBuffer(){
+void ClearConsoleBuffer(){
 	uint8_t i;
 	for(i=0;i<UART_BUF_SIZE;i++)
 		console.buf[i] = 0;
 	console.cmd_flag = 0;
-	console.bootStage = 0;
+	console.bootMenuStage = 0;
 	console.idx = 0;
 	console.BootTimeout = 0;
 }
@@ -264,7 +271,7 @@ void UART_Con_Mash(){
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
-			SysCntrl.power_stage = 41;
+			SysCntrl.power_stage = 21;
 			UART_putstrln(1,"CPU restarted...");
 		}
 		else
@@ -324,7 +331,8 @@ void UART_Con_Mash(){
 		// >>
 		UART_putstrln(0,SWT[2]);
 		memcpy(console.prevBuf,console.buf,UART_BUF_SIZE);
-		refreshConsoleBuffer();
+		console.prevIdx = console.idx;
+		ClearConsoleBuffer();
 	}
 
 }
@@ -363,7 +371,6 @@ int main(void)
   if(SysCntrl.Magic!=0b10110){
 	SysCntrl.MainFlash = 0;
 	SysCntrl.FWStatus = 0;
-	SysCntrl.Watchdog = 1;
 	SysCntrl.Autoboot_Saved = 1;
 	SysCntrl.Magic = 0b10110;
 	writeConfig();
@@ -377,6 +384,7 @@ int main(void)
   SysCntrl.MS_counter = 0;
   SysCntrl.Autoboot = SysCntrl.Autoboot_Saved;
   console.SecondsToStart = 10;
+  SysCntrl.WatchdogConsole = 1;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -404,11 +412,12 @@ int main(void)
   SPI_Reset(1);
   hi2c.state = 0;
   hi2c.bufIdx = 0;
+  checkPowerLevels(0);
   USB_EnableGlobalInt(&hUsbDeviceFS);
-  refreshConsoleBuffer();
+  ClearConsoleBuffer();
   DisableSPI();
-  char buf[25];
   clearHi2c();
+  char buf[25];
   HAL_GPIO_WritePin(GPIOA,GPIO_PIN_2,GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
@@ -433,25 +442,25 @@ int main(void)
 					}
 			  break;
 		  case 4:
-			  if(SysCntrl.XmodemMode == 0){
+			  if(SysCntrl.XmodemMode == 0)
 				  PowerSM();
-			  }
-			  break;
+		  break;
 		  case 6:
 			  i2cSM();
-			  break;
-		  case 10:
-			checkPowerLevels(0);
-			 break;
+		  break;
 		  case 14:
 			SysCntrl.WatchdogTimer++;
-			break;
+		  break;
 		  case 16:
 			  if(SysCntrl.XmodemMode){
 				  Xmodem_SPI();
-				  SysCntrl.MS_counter = 15;
+				  SysCntrl.MS_counter = 16;
 			  }
 		  break;
+		  case 17:
+			  checkPowerLevels();
+			  break;
+		  // Дальше не занимать, защита от дребезга занимает много времени
 		  }
 	  }
 

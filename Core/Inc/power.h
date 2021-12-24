@@ -9,7 +9,7 @@
 #define INC_POWER_H_
 
 void PowerSM();
-void checkPowerLevels(uint8_t output);
+void checkPowerLevels();
 
 
 // POWER SUBSYSTEM SIGNALS
@@ -22,7 +22,6 @@ void checkPowerLevels(uint8_t output);
 #define EJ_TRST_N    (1<<6)
 #define CPU_RST_N    (1<<7) // 1V8_CPU_RESET
 
-#define PGIN_PIN GPIOA, GPIO_PIN_15
 #define PWRBTN_PIN GPIOF, GPIO_PIN_1
 #define RSTBTN_PIN GPIOB, GPIO_PIN_4
 #define ALTBOOT_PIN  GPIOB, GPIO_PIN_5

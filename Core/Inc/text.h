@@ -47,9 +47,8 @@
 
 
 extern const char *CS_STASTUS_LABELS[];
-extern const char* menu[];
 extern const char* text[];
 extern const char* ASMNOP;
-
+extern const char* SWT[];
 
 #endif /* INC_TEXT_H_ */

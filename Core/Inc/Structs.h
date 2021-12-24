@@ -60,12 +60,12 @@ struct SSysCntrl{
 		struct{
 			uint8_t pwrbtn:1;
 			uint8_t rstbtn:1;
-			uint8_t stmbootsel:1;
 			uint8_t BootFlash:1;
-			uint8_t Watchdog:1; //  0/1
+			uint8_t WatchdogConsole:1; //  0/1
+			uint8_t WatchdogBootAlt:1; //  0/1
 			uint8_t intEn:1;
-			uint8_t bootloaderMode:1; // 0/1
 			uint8_t Autoboot:1;
+			uint8_t UserChangedBootLogic:1;
 			};
 		};
 		uint16_t WatchdogTimer;
@@ -76,10 +76,11 @@ struct SConsole{
 	uint8_t idx;
 	uint8_t buf[UART_BUF_SIZE];
 	uint8_t prevBuf[UART_BUF_SIZE];
+	uint8_t prevIdx;
 	uint8_t cmd_flag;
 	uint8_t result;
 	uint8_t cmdCode;
-	uint8_t bootStage:1;
+	uint8_t bootMenuStage;
 	uint8_t BootTimeout;
 	uint8_t SecondsToStart;
 } console;

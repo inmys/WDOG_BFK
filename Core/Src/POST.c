@@ -17,7 +17,7 @@ void POST(){
 	//cbuf[30];
 	memID conf;
 	EnableSPI();
-
+	char *FAILED = "FAILED";
 	for(i=0;i<2;i++){
 		clearBuf(buf);
 		for(j=0;j<4;j++){
@@ -67,7 +67,7 @@ void POST(){
 		sprintf(buf,"%sV %s",abuf, bbuf);
 		}
 		else
-			sprintf(buf,"FAILED");
+			sprintf(buf,FAILED);
 
 		UART_putstrln(1,buf);
 	}
@@ -80,14 +80,14 @@ void POST(){
 	SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,abuf,2,1);
 
 	uint8_t tester = 0x03;
-	UART_putstrln(1,"I/O Expander: ");
+	UART_putstrln(0,"I/O Expander: ");
 	SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,&tester,1,1);
 	tester = 0;
 	SFT_I2C_Master_Receive(&si2c1,GPIO_EXPANDER_ADDR,&tester,1,1);
 	if(tester==0b01010101)
 		UART_putstrln(1,"OK");
 	else
-		UART_putstrln(1,"FAILED");
+		UART_putstrln(1,FAILED);
 	abuf[1] = 0;
 	SFT_I2C_Master_Transmit(&si2c1,GPIO_EXPANDER_ADDR,abuf,2,1);
 

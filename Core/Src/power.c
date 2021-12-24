@@ -4,6 +4,7 @@
  *  Created on: Aug 5, 2021
  *      Author: vovav
  */
+#include "main.h"
 #include "structs.h"
 #include "power.h"
 #include "memory.h"
@@ -23,25 +24,29 @@ void PowerSM() {
 		//CPU is turned off & is not planing to going on
 		case 100:
 			ClrI2C_Mask(0b11111111);
+
 			if(BootMenu() || SysCntrl.pwrbtn || (SysCntrl.Autoboot && !console.SecondsToStart))
 				SysCntrl.power_stage = 0;
 			break;
 		case 0:
 			UART_putstrln(1,"Booting...");
-			 if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
-				 SysCntrl.BootFlash = SysCntrl.MainFlash;
-			 else{
-				 if(SysCntrl.BootAttempt>0){
-					 SysCntrl.BootAttempt--;
-					 SysCntrl.BootFlash = ~SysCntrl.MainFlash;
-				 }
-				 else
-				 {
-					 SysCntrl.FWStatus = BAD;
-					 SysCntrl.BootFlash = SysCntrl.MainFlash;
-				 }
-				 //writeConfig();
-			 }
+			if(!SysCntrl.UserChangedBootLogic)
+				if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
+					SysCntrl.BootFlash = SysCntrl.MainFlash;
+				else{
+					if(SysCntrl.BootAttempt==0){
+						SysCntrl.BootAttempt--;
+						SysCntrl.BootFlash = ~SysCntrl.MainFlash;
+						writeConfig();
+					}
+					else
+					{
+						SysCntrl.FWStatus = BAD;
+						SysCntrl.BootFlash = SysCntrl.MainFlash;
+						SysCntrl.BootAttempt = 3;
+						writeConfig();
+					}
+				}
 			 SysCntrl.power_stage = 9;
 		break;
 		case 9:
@@ -81,22 +86,21 @@ void PowerSM() {
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 50;
 			SysCntrl.power_stage = 51;
-			//WATHCDOG HARD OFF HERE!!!
-			SysCntrl.Watchdog = 0;
 			SysCntrl.WatchdogTimer = 0;
+			UART_putstrln(0,SWT[2]);
 		break;
 		// State: CPU is on & power is on NORMAL STATE
 		case 51:
+
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
 			SysCntrl.PowerTimer  = 100;
-			if(SysCntrl.Watchdog && (SysCntrl.WatchdogTimer > 200*100)  ){ // 500 = 5 seconds
-				//UART_putstrln("Attention: 90 sec no response. CPU restarted");
-				SysCntrl.power_stage = 41;
+			if((SysCntrl.WatchdogConsole && SysCntrl.WatchdogBootAlt) && (SysCntrl.WatchdogTimer > 100*10)  ){ // 10 seconds
+				SysCntrl.power_stage = 21;
 				SysCntrl.WatchdogTimer = 0;
 			}
 			if(SysCntrl.rstbtn){
-				UART_putstrln(1,"reseting CPU");
+				UART_putstrln(1,"resetting CPU");
 				SysCntrl.power_stage = 21;
 			}
 			if(SysCntrl.pwrbtn){
@@ -118,7 +122,7 @@ void PowerSM() {
 
 		break;
 		case 11:
-			refreshConsoleBuffer();
+			ClearConsoleBuffer();
 			SysCntrl.PowerTimer = 25;
 			SysCntrl.power_stage = 100;
 		}
@@ -129,7 +133,7 @@ void PowerSM() {
 // PGIN  power good INVERTED on PCB and additionaly inverted here
 // RSTBTN reset btm from motherboard    (x16)
 // PWRBTN power button from motherboard (x15)
-// ALTBOOT watchdog                     (x14)
+// ALTBOOT turn watchdog  on/off        (x14)
 // STMBOOTSEL ???                       (x19)
 
 uint8_t debouncer(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin){
@@ -151,7 +155,7 @@ uint8_t debouncer(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin){
 	return ((pinState)?1:0);
 }
 
-void checkPowerLevels(uint8_t output){
+void checkPowerLevels(){
 	char buf[10] = {0};
 	uint8_t pinState;
 
@@ -162,35 +166,31 @@ void checkPowerLevels(uint8_t output){
 			SysCntrl.pwrbtn = pinState&0b00000001;
 	}
 
-	if(output){
-		sprintf(buf,"PWRBTN: %d",SysCntrl.pwrbtn);
-		UART_putstrln(1,buf);
-	}
 
 	pinState = HAL_GPIO_ReadPin(RSTBTN_PIN);
 	if((pinState&0b00000001)!=SysCntrl.rstbtn){
 		pinState = debouncer(RSTBTN_PIN);
-		if(pinState&0b10000000){
+		if(pinState&0b10000000)
 			SysCntrl.rstbtn = pinState&0b00000001;
-		}
 	}
 
-	if(output){
-		sprintf(buf,"RSTBTN: %d",SysCntrl.rstbtn);
-		UART_putstrln(1,buf);
-	}
+	pinState = HAL_GPIO_ReadPin(ALTBOOT_PIN);
+	if(pinState!=SysCntrl.WatchdogBootAlt)
+		SysCntrl.WatchdogBootAlt = pinState;
+
 
 }
 
-extern void DFUMode();
-
 int BootMenu(){
 	uint8_t i,result = 0;
+	uint8_t cmd;
 	char buf[25];
-
-	if(!console.bootStage){
+	const char* menu[] = {"Select menu item","1) Boot","2) Update flash 1","3) Update flash 2","4) Toggle main flash",
+			"5) Toggle boot flash", "6) Toggle watchdog","7) Set FW status to: CONFIRMED","8) Set FW status to: UPDATED","9) Set FW status to: BAD","10) Update MCU","Enter selected number and press <Enter>"};
+	switch(console.bootMenuStage){
+	case 0:
 		clearUartConsole();
-		refreshConsoleBuffer();
+		ClearConsoleBuffer();
 		UART_putstrln(1,WELCOME_SCREEN);
 		memoryMenu();
 		POST();
@@ -202,93 +202,125 @@ int BootMenu(){
 			sprintf(buf,"Starting after %d sec",console.SecondsToStart);
 			UART_putstrln(1,buf);
 		}
-		console.bootStage = 1;
+		console.bootMenuStage = 1;
 		console.BootTimeout = 50;
-	}
-	if(SysCntrl.Autoboot){
-		console.BootTimeout--;
-		if(!console.BootTimeout){
-
-			console.bootStage = 0;
-			console.SecondsToStart--;
-		}
-	}
-
-	if(!console.cmd_flag)
+		break;
+	case 1:
 		userInput(0);
-	else{
-		uint8_t cmd = atoi(console.buf)-1;
+		if(console.cmd_flag)
+			console.bootMenuStage = 2;
+		break;
+	case 2:
+		cmd = atoi(console.buf);
 		UART_putstrln(1,NULL);
-			SysCntrl.Autoboot = 0;
+		ClearConsoleBuffer();
+		if(cmd>1){
+			console.bootMenuStage = 3;
 			UART_putstrln(1,menu[cmd]);
 			UART_putstrln(0,text[4]);
-			refreshConsoleBuffer();
-		if(cmd == 255)
-			cmd = 0;
-		while(cmd && !console.cmd_flag)
-			userInput(1);
-		if(cmd && (console.buf[0] == 'Y' || console.buf[0] == 'y'))
-			switch(cmd){
-			case 0:
-				//clearUartConsole();
-				refreshConsoleBuffer();
+			}
+		else
+			console.bootMenuStage = 5;
+		break;
+
+	case 3:
+		userInput(0);
+		if(console.cmd_flag)
+			console.bootMenuStage = 4;
+		break;
+	case 4:
+		if(console.buf[0] == 'Y' || console.buf[0] == 'y')
+			console.bootMenuStage = 5;
+		else
+			console.bootMenuStage = 0;
+		break;
+	case 5:
+		UART_putstrln(1,NULL);
+		switch(cmd){
+			case 1:
+				ClearConsoleBuffer();
 				result = 1;
 				break;
-			case 1:
+			case 2:
 				// Update 1st flash
 				if(SysCntrl.MainFlash == 0){
 					UART_putstrln(1,text[3]);
-					// ERROR
+					ClearConsoleBuffer();
+					while(!console.cmd_flag)
+						userInput(1);
+					UART_putstrln(1,NULL);
 				}
 				else{
 					SysCntrl.active_cs = 0;
 					Xmodem_Init();
 				}
 			break;
-			case 2:
+			case 3:
 				// Update 1st flash
 				if(SysCntrl.MainFlash == 1){
 					UART_putstrln(1,text[3]);
-					// ERROR
+					ClearConsoleBuffer();
+					while(!console.cmd_flag)
+						userInput(1);
+					UART_putstrln(1,NULL);
 				}
 				else{
 					SysCntrl.active_cs = 1;
 					Xmodem_Init();
 				}
 			break;
-			case 3:
+			case 4:
 				// Toggle main flash
 				SysCntrl.MainFlash = ~SysCntrl.MainFlash;
 				writeConfig();
 			break;
-			case 4:
+			case 5:
 				// Toggle boot flash
 				SysCntrl.BootFlash = ~SysCntrl.BootFlash;
-			break;
-			case 5:
-				// Toggle watchdog
-				SysCntrl.Watchdog = ~SysCntrl.Watchdog;
+				SysCntrl.UserChangedBootLogic = 1;
 			break;
 			case 6:
-				// Set FW status to CONFIRMED
-				SysCntrl.FWStatus = CONFIRMED;
+				// Toggle watchdog
+				SysCntrl.WatchdogConsole = ~SysCntrl.WatchdogConsole;
 			break;
 			case 7:
-				// Set FW status to UPDATED
-				SysCntrl.FWStatus = UPDATED;
+				// Set FW status to CONFIRMED
+				SysCntrl.FWStatus = CONFIRMED;
+				SysCntrl.BootAttempt = 3;
+				writeConfig();
 			break;
 			case 8:
-				// Set FW status to BAD
-				SysCntrl.FWStatus = BAD;
+				// Set FW status to UPDATED
+				SysCntrl.FWStatus = UPDATED;
+				SysCntrl.BootAttempt = 3;
+				writeConfig();
 			break;
 			case 9:
+				// Set FW status to BAD
+				SysCntrl.FWStatus = BAD;
+				SysCntrl.BootAttempt = 3;
+				writeConfig();
+			break;
+			case 10:
 				DFUMode();
 			break;
 			}
-
-		SysCntrl.Autoboot = 0;
-		console.bootStage = 0;
+		console.bootMenuStage = 6;
+		break;
+		case 6:
+			SysCntrl.Autoboot = 0;
+			console.bootMenuStage = 0;
+			break;
 	}
+
+	if(SysCntrl.Autoboot){
+		console.BootTimeout--;
+		if(!console.BootTimeout){
+			console.bootMenuStage = 0;
+			console.SecondsToStart--;
+		}
+	}
+
 	return result;
 }
 
