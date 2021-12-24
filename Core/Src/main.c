@@ -101,6 +101,15 @@ void DisableSPI() {
 }
 
 
+
+void DFUMode(){
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitStruct.Pin = GPIO_PIN_8;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_8,GPIO_PIN_SET);
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -225,6 +234,7 @@ void userInput(uint8_t anykey){
 		}
 
 	}while(console.result && (!console.cmd_flag));
+
 }
 void refreshConsoleBuffer(){
 	uint8_t i;
@@ -234,7 +244,6 @@ void refreshConsoleBuffer(){
 	console.bootStage = 0;
 	console.idx = 0;
 	console.BootTimeout = 0;
-
 }
 
 void clearUartConsole(){

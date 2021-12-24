@@ -182,19 +182,21 @@ void checkPowerLevels(uint8_t output){
 
 }
 
-
+extern void DFUMode();
 
 int BootMenu(){
 	uint8_t i,result = 0;
 	char buf[25];
+
 	if(!console.bootStage){
 		clearUartConsole();
 		refreshConsoleBuffer();
 		UART_putstrln(1,WELCOME_SCREEN);
 		memoryMenu();
+		POST();
 		UART_putstrln(0,"CPU FW status:");
 		UART_putstrln(1,CS_STASTUS_LABELS[SysCntrl.FWStatus]);
-		for(i=0;i<10;i++)
+		for(i=0;i<12;i++)
 			UART_putstrln(1,menu[i]);
 		if(SysCntrl.Autoboot){
 			sprintf(buf,"Starting after %d sec",console.SecondsToStart);
@@ -216,68 +218,76 @@ int BootMenu(){
 		userInput(0);
 	else{
 		uint8_t cmd = atoi(console.buf)-1;
-		if(cmd == -1){
-			UART_putstrln(0,"AUTOBOOT TURNED OFF");
-			SysCntrl.Autoboot = 0;
-		}
 		UART_putstrln(1,NULL);
-		switch(cmd){
-		case 0:
-			//clearUartConsole();
+			SysCntrl.Autoboot = 0;
+			UART_putstrln(1,menu[cmd]);
+			UART_putstrln(0,text[4]);
 			refreshConsoleBuffer();
-			result = 1;
+		if(cmd == 255)
+			cmd = 0;
+		while(cmd && !console.cmd_flag)
+			userInput(1);
+		if(cmd && (console.buf[0] == 'Y' || console.buf[0] == 'y'))
+			switch(cmd){
+			case 0:
+				//clearUartConsole();
+				refreshConsoleBuffer();
+				result = 1;
+				break;
+			case 1:
+				// Update 1st flash
+				if(SysCntrl.MainFlash == 0){
+					UART_putstrln(1,text[3]);
+					// ERROR
+				}
+				else{
+					SysCntrl.active_cs = 0;
+					Xmodem_Init();
+				}
 			break;
-		case 1:
-			// Update 1st flash
-			if(SysCntrl.MainFlash == 0){
-				UART_putstrln(1,text[3]);
-				// ERROR
+			case 2:
+				// Update 1st flash
+				if(SysCntrl.MainFlash == 1){
+					UART_putstrln(1,text[3]);
+					// ERROR
+				}
+				else{
+					SysCntrl.active_cs = 1;
+					Xmodem_Init();
+				}
+			break;
+			case 3:
+				// Toggle main flash
+				SysCntrl.MainFlash = ~SysCntrl.MainFlash;
+				writeConfig();
+			break;
+			case 4:
+				// Toggle boot flash
+				SysCntrl.BootFlash = ~SysCntrl.BootFlash;
+			break;
+			case 5:
+				// Toggle watchdog
+				SysCntrl.Watchdog = ~SysCntrl.Watchdog;
+			break;
+			case 6:
+				// Set FW status to CONFIRMED
+				SysCntrl.FWStatus = CONFIRMED;
+			break;
+			case 7:
+				// Set FW status to UPDATED
+				SysCntrl.FWStatus = UPDATED;
+			break;
+			case 8:
+				// Set FW status to BAD
+				SysCntrl.FWStatus = BAD;
+			break;
+			case 9:
+				DFUMode();
+			break;
 			}
-			else{
-				SysCntrl.active_cs = 0;
-				Xmodem_Init();
-			}
-		break;
-		case 2:
-			// Update 1st flash
-			if(SysCntrl.MainFlash == 1){
-				UART_putstrln(1,text[3]);
-				// ERROR
-			}
-			else{
-				SysCntrl.active_cs = 1;
-				Xmodem_Init();
-			}
-		break;
-		case 3:
-			// Toggle main flash
-			SysCntrl.MainFlash = ~SysCntrl.MainFlash;
-			writeConfig();
-		break;
-		case 4:
-			// Toggle boot flash
-			SysCntrl.BootFlash = ~SysCntrl.BootFlash;
-		break;
-		case 5:
-			// Toggle watchdog
-			SysCntrl.Watchdog = ~SysCntrl.Watchdog;
-		break;
-		case 6:
-			// Set FW status to CONFIRMED
-			SysCntrl.FWStatus = CONFIRMED;
-		break;
-		case 7:
-			// Set FW status to UPDATED
-			SysCntrl.FWStatus = UPDATED;
-		break;
-		case 8:
-			// Set FW status to BAD
-			SysCntrl.FWStatus = BAD;
-		break;
 
-		}
-		console.bootStage = 0;
 		SysCntrl.Autoboot = 0;
+		console.bootStage = 0;
 	}
 	return result;
 }

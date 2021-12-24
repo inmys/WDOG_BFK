@@ -125,6 +125,10 @@ const uint8_t APBPrescTable[8]  = {0, 0, 0, 0, 1, 2, 3, 4};
   * @param  None
   * @retval None
   */
+extern uint32_t dfu_reset_to_bootloader_magic;
+#define SYSMEM_RESET_VECTOR            0x1FFFC404
+#define RESET_TO_BOOTLOADER_MAGIC_CODE 0xDEADBEEF
+#define BOOTLOADER_STACK_POINTER       0x200014C0
 void SystemInit(void)
 {
   /* NOTE :SystemInit(): This function is called at startup just after reset and 
