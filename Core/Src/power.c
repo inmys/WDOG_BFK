@@ -34,7 +34,7 @@ void PowerSM() {
 				if(SysCntrl.FWStatus == CONFIRMED || SysCntrl.FWStatus == BAD)
 					SysCntrl.BootFlash = SysCntrl.MainFlash;
 				else{
-					if(SysCntrl.BootAttempt==0){
+					if(SysCntrl.BootAttempt!=0){
 						SysCntrl.BootAttempt--;
 						SysCntrl.BootFlash = ~SysCntrl.MainFlash;
 						writeConfig();
