@@ -94,9 +94,8 @@ void PowerSM() {
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			ClrI2C_Mask(CPU_RST_N);
 			SysCntrl.PowerTimer  = 100;
-			if(SysCntrl.rstbtn ||((SysCntrl.WatchdogConsole && SysCntrl.WatchdogBootAlt) && (SysCntrl.WatchdogTimer > 100*10))  ){ // 10 seconds
+			if(SysCntrl.rstbtn || (SysCntrl.WatchdogConsole && SysCntrl.WatchdogBootAlt && (SysCntrl.WatchdogTimer > MAIN_TIME_SCALER*85))  ){ // boot 85s min waiting, after i2c response 1 min
 				SysCntrl.power_stage = 9;
-				SysCntrl.WatchdogTimer = 0;
 				UART_putstrln(1,"restarting CPU");
 			}
 			if(SysCntrl.pwrbtn){
@@ -115,6 +114,7 @@ void PowerSM() {
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 7;
+			SysCntrl.WatchdogTimer = 0;
 
 		break;
 		case 10:

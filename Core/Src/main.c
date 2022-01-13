@@ -303,11 +303,11 @@ void UART_Con_Mash(){
 		if(!strcmp(console.buf,"power"))
 			checkPowerLevels(1);
 		else if(!strcmp(console.buf,"info")) memoryMenu(1);
-		/*else
+		else
 		if(!strcmp(console.buf,"wdog")){
 			sprintf(buf,"WDOG timer: %d",SysCntrl.WatchdogTimer);
 			UART_putstrln(1,buf);
-		}*/
+		}
 		else
 		if(!strcmp(console.buf,"pwrstage")){
 			sprintf(buf,"Power stage:%d",SysCntrl.power_stage);

@@ -93,7 +93,7 @@ void i2cSM(){
 				// Configuration Registers
 				case 3:
 					if((byte&(1<<I2C_WDOG_POS))?1:0)
-						SysCntrl.WatchdogTimer = 10000;
+						SysCntrl.WatchdogTimer = 20*MAIN_TIME_SCALER;
 					SysCntrl.intEn = 0;
 					writeConfig();
 				break;

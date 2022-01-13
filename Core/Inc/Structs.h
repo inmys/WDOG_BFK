@@ -10,6 +10,8 @@
 #include<stdint.h>
 #include"text.h"
 
+#define MAIN_TIME_SCALER 50
+
 struct SSysCntrl{
 	uint8_t power_stage;
 	uint16_t PowerTimer;
