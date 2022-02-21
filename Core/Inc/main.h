@@ -43,7 +43,7 @@ void ClrI2C_Mask(uint8_t);
 void Set_CS(uint8_t);
 void Clr_CS(uint8_t);
 
-void UART_putstrln(uint8_t,char*);
+void UART_putstrln(uint8_t,char *);
 void UART_SendByte(uint8_t);
 int ReadUartNonBlock();
 void userInput(uint8_t);

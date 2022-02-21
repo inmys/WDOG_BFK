@@ -63,7 +63,7 @@ void PowerSM() {
 		// State: CPU is turned off & power is turning on STAGE 1
 		case 3:
 			SetI2C_Mask(TRST_N|EJ_TRST_N);
-			ClrI2C_Mask(RESET_N|CPU_RST_N);
+			ClrI2C_Mask(RESET_N|CPU_RESET);
 			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 4;
 		break;
@@ -76,50 +76,51 @@ void PowerSM() {
 		// State: CPU is turned off & power is turning on STAGE 3
 		case 5:
 			SetI2C_Mask(ENA_HV_DCDC);
-			// SUS_S3# set
 			SysCntrl.PowerTimer  = 5;
 			SysCntrl.power_stage = 6;
 		break;
 		// State: CPU is turned off & power is turning on STAGE 4
 		case 6:
-			SetI2C_Mask(CPU_RST_N);
+			SetI2C_Mask(CPU_RESET);
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 50;
 			SysCntrl.power_stage = 7;
 			SysCntrl.WatchdogTimer = 0;
-			UART_putstrln(0,SWT[2]);
 		break;
 		// State: CPU is on & power is on NORMAL STATE
 		case 7:
 			SetI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
-			ClrI2C_Mask(CPU_RST_N);
+			ClrI2C_Mask(CPU_RESET);
 			SysCntrl.PowerTimer  = 100;
+			SysCntrl.power_stage = 8;
+		break;
+		case 8:
 			if(SysCntrl.rstbtn || (SysCntrl.WatchdogConsole && SysCntrl.WatchdogBootAlt && (SysCntrl.WatchdogTimer > MAIN_TIME_SCALER*85))  ){ // boot 85s min waiting, after i2c response 1 min
-				SysCntrl.power_stage = 9;
+				SysCntrl.power_stage = 10;
 				UART_putstrln(1,"restarting CPU");
 			}
 			if(SysCntrl.pwrbtn){
 				UART_putstrln(1,"turning off CPU");
-				SysCntrl.power_stage = 8;
+				SysCntrl.power_stage = 9;
 			}
+			SysCntrl.PowerTimer = 50;
 		break;
 		// State: CPU is on & requested soft shutdown
-		case 8:
+		case 9:
 			SysCntrl.PowerTimer  = 50;
-			SysCntrl.power_stage = 10;
+			SysCntrl.power_stage = 11;
 		break;
 		// initiating hard reset
-		case 9:
-			SetI2C_Mask(CPU_RST_N);
+		case 10:
+			SetI2C_Mask(CPU_RESET);
 			ClrI2C_Mask(TRST_N|EJ_TRST_N|RESET_N);
 			SysCntrl.PowerTimer  = 1;
 			SysCntrl.power_stage = 7;
 			SysCntrl.WatchdogTimer = 0;
 
 		break;
-		case 10:
+		case 11:
 			ClearConsoleBuffer();
-			SysCntrl.PowerTimer = 25;
 			SysCntrl.power_stage = 0;
 		break;
 		default:

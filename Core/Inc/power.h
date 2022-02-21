@@ -20,7 +20,7 @@ void checkPowerLevels();
 #define FLASH_EN_1   (1<<4)
 #define TRST_N       (1<<5)
 #define EJ_TRST_N    (1<<6)
-#define CPU_RST_N    (1<<7) // 1V8_CPU_RESET
+#define CPU_RESET    (1<<7) // 1V8_CPU_RESET
 
 #define PWRBTN_PIN GPIOF, GPIO_PIN_1
 #define RSTBTN_PIN GPIOB, GPIO_PIN_4
@@ -34,9 +34,5 @@ void checkPowerLevels();
 #define RSTBTN     (1<<2)
 #define ALTBOOT    (1<<3)
 #define STMBOOTSEL (1<<4)
-
-#define TRST_N       (1<<5)
-#define EJ_TRST_N    (1<<6)
-#define CPU_RST_N    (1<<7)
 
 #endif /* INC_POWER_H_ */

@@ -123,27 +123,114 @@ uint8_t SPI_ReadID(uint8_t cs,struct memoryReport *data) {
 }
 
 extern struct SConsole console;
+
 void Xmodem_SPI(){
 	uint8_t bt;
 	int result,i;
-	char buf[10];
-	if(SysCntrl.TimerCnt) SysCntrl.TimerCnt--;
+
+	if(SysCntrl.TimerCnt)SysCntrl.TimerCnt--;
 
 	switch(SysCntrl.XmodemState) {
 	case XMODEM_STATE_INIT:
 		result = ReadUartNonBlock(&bt,1);
 		if((result>0)) {
-			switch(bt){
-			case 0x01:
+			if( bt == 0x01) {
 				SysCntrl.XmodemState = XMODEM_STATE_S0;
 				SysCntrl.X_idx = 0;
 
 				SysCntrl.SPI_page_idx = 0;
 				SysCntrl.bt_count = 128+4;
-			break;
-			case 0x03:
-				SysCntrl.XmodemMode = 0;
-				break;
+			}
+		} else {
+			if(!result && !SysCntrl.TimerCnt) {
+				SysCntrl.TryCounter--;
+				if(!SysCntrl.TryCounter) {
+					SysCntrl.XmodemMode = 0;
+					UART_putstrln(1,"Timeout...");
+				}
+				else {
+					SysCntrl.TimerCnt = XMODEM_TIME_1SEC;
+					UART_putstrln(0,"C");
+				}
+			}
+		}
+		break;
+	case XMODEM_STATE_S0: // SOH code received
+		//uint8_t SPI_rxbuf[1024];
+		//alt_u32 X_idx;
+		//alt_u32 bt_count;
+		result = ReadUartNonBlock(&SysCntrl.SPI_rxbuf[SysCntrl.X_idx],SysCntrl.bt_count);
+		if(result>0) {
+			SysCntrl.X_idx += result;
+			SysCntrl.bt_count -= result;
+			if(!SysCntrl.bt_count) {
+				UART_SendByte(0x06); // ACK
+				for(i=0;i<128;i++) {
+					SysCntrl.SPI_page[SysCntrl.SPI_page_idx++] = SysCntrl.SPI_rxbuf[i+2];
+					//Uart_Cntrl.SPI_page[Uart_Cntrl.SPI_page_idx++] =Uart_Cntrl.SPI_page_idx;
+
+				}
+				if(SysCntrl.SPI_page_idx >= 255)
+					Flash_PageWrite();
+				SysCntrl.XmodemState = XMODEM_STATE_S1;
+			}
+		}
+		break;
+	case XMODEM_STATE_S1:
+		result = ReadUartNonBlock(&bt,1);
+		if(result>0){
+			if((bt == 0x01)) {
+					SysCntrl.XmodemState = XMODEM_STATE_S0;
+					SysCntrl.X_idx = 0;
+					SysCntrl.bt_count = 128+4;
+					} else if(bt == 0x04) {
+						UART_SendByte(0x06); // ACK
+						if(SysCntrl.SPI_page_idx == 128) {
+							Flash_PageWrite();
+							SysCntrl.XmodemState = XMODEM_STATE_INIT;
+							SysCntrl.XmodemMode = 0;
+							DisableSPI();
+							}
+					} else if(bt == 0x17) {
+						UART_SendByte(0x06); // ACK
+						SysCntrl.XmodemState = XMODEM_STATE_INIT;
+						SysCntrl.XmodemMode = 0;
+						DisableSPI();
+					}  else if(bt == 0x18) {
+						UART_SendByte(0x06); // ACK
+						UART_SendByte(0x06); // ACK
+						SysCntrl.XmodemState = XMODEM_STATE_INIT;
+						SysCntrl.XmodemMode = 0;
+						DisableSPI();
+						UART_putstrln(1,"Canceled");
+					}
+			}
+
+		break;
+	case XMODEM_STATE_S2:
+		break;
+	case XMODEM_STATE_S3:
+		break;
+	}
+}
+
+/*
+void Xmodem_SPI(){
+	uint8_t bt;
+	int result,i;
+	char buf[13];
+	if(SysCntrl.TimerCnt)SysCntrl.TimerCnt--;
+
+	switch(SysCntrl.XmodemState) {
+	case XMODEM_STATE_INIT:
+		result = ReadUartNonBlock(&bt,1);
+		if((result>0)) {
+			if( bt == 0x01) {
+				SysCntrl.XmodemState = XMODEM_STATE_S0;
+				SysCntrl.X_idx = 0;
+
+				SysCntrl.SPI_page_idx = 0;
+				SysCntrl.bt_count = 128+4;
 			}
 		} else {
 			if(!result && !SysCntrl.TimerCnt) {
@@ -178,43 +265,31 @@ void Xmodem_SPI(){
 	case XMODEM_STATE_S1:
 		result = ReadUartNonBlock(&bt,1);
 		if(result>0){
-			UART_putstrln(0,buf);
 			if((bt == 0x01)) {
-					SysCntrl.XmodemState = XMODEM_STATE_S0;
-					SysCntrl.X_idx = 0;
-					SysCntrl.bt_count = 128+4;
+				SysCntrl.XmodemState = XMODEM_STATE_S0;
+				SysCntrl.X_idx = 0;
+				SysCntrl.bt_count = 128+4;
+			} else if(bt == 0x04) { // EOT
+				UART_SendByte(0x06); // ACK
+				if(SysCntrl.SPI_page_idx == 128) {
+					Flash_PageWrite();
+					SysCntrl.XmodemState = XMODEM_STATE_INIT;
+					SysCntrl.XmodemMode = 0;
+					DisableSPI();
 					}
-			else
-				if(bt == 0x04) {
-					// Все страницы зашили
-						SysCntrl.FWStatus = UPDATED;
-						SysCntrl.BootAttempt = 3;
-						writeConfig();
-						UART_SendByte(0x06); // ACK
-						for(;SysCntrl.SPI_page_idx<128; SysCntrl.SPI_page_idx++)
-							SysCntrl.SPI_page[SysCntrl.SPI_page_idx] = 0;
-						Flash_PageWrite();
-						SysCntrl.XmodemState = XMODEM_STATE_INIT;
-						SysCntrl.XmodemMode = 0;
-						DisableSPI();
+			} else if(bt == 0x17) { // ETB
+				UART_SendByte(0x06); // ACK
+				SysCntrl.XmodemState = XMODEM_STATE_INIT;
+				SysCntrl.XmodemMode = 0;
+				DisableSPI();
+			}  else if(bt == 0x18) { // CAN
+				UART_SendByte(0x06); // ACK
+				UART_SendByte(0x06); // ACK
+				SysCntrl.XmodemState = XMODEM_STATE_INIT;
+				SysCntrl.XmodemMode = 0;
+				DisableSPI();
+				UART_putstrln(1,"Canceled");
 				}
-				else
-					if(bt == 0x17) {
-						UART_SendByte(0x06); // ACK
-						SysCntrl.XmodemState = XMODEM_STATE_INIT;
-						SysCntrl.XmodemMode = 0;
-						DisableSPI();
-					}
-					else
-						if(bt == 0x18) {
-							UART_SendByte(0x06); // ACK
-							UART_SendByte(0x06); // ACK
-							SysCntrl.XmodemState = XMODEM_STATE_INIT;
-							SysCntrl.XmodemMode = 0;
-							DisableSPI();
-
-							UART_putstrln(1,"Canceled");
-						}
 			}
 
 		break;
@@ -225,6 +300,7 @@ void Xmodem_SPI(){
 	}
 }
 
+*/
 void Xmodem_Init(){
 	EnableSPI();
 	SysCntrl.XmodemMode = 1;

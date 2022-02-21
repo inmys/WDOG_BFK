@@ -243,13 +243,19 @@ void userInput(uint8_t anykey){
 	}while(console.result && (!console.cmd_flag));
 
 }
+
+
 void ClearConsoleBuffer(){
+
 	uint8_t i;
-	for(i=0;i<UART_BUF_SIZE;i++)
+	for(i=0;i<UART_BUF_SIZE;i++){
 		console.buf[i] = 0;
+		console.prevBuf[i] = 0;
+	}
 	console.cmd_flag = 0;
 	console.bootMenuStage = 0;
 	console.idx = 0;
+	console.prevIdx = 0;
 	console.BootTimeout = 0;
 }
 
@@ -271,7 +277,7 @@ void UART_Con_Mash(){
 		}
 		else
 		if(!strcmp(console.buf,"restart")){
-			SysCntrl.power_stage = 9;
+			SysCntrl.power_stage = 10;
 			UART_putstrln(1,"CPU restarted...");
 		}
 		else
@@ -434,7 +440,7 @@ int main(void)
 		  // 20 мс разрешение
 		  switch(SysCntrl.MS_counter % 20) {
 		  case 0:
-			 if(SysCntrl.power_stage == 7)
+			 if(SysCntrl.power_stage == 8)
 				 switch(hUsbDeviceFS.dev_state){
 					 case USBD_STATE_CONFIGURED:
 						 UART_Con_Mash();
@@ -454,7 +460,7 @@ int main(void)
 		  case 16:
 			  if(SysCntrl.XmodemMode){
 				  Xmodem_SPI();
-				  SysCntrl.MS_counter = 16;
+				  SysCntrl.MS_counter = 15;
 			  }
 		  break;
 		  case 17:
