@@ -71,7 +71,7 @@ struct SSysCntrl{
 			};
 		};
 		uint16_t WatchdogTimer;
-}SysCntrl;
+};
 
 
 struct SConsole{
@@ -85,8 +85,7 @@ struct SConsole{
 	uint8_t bootMenuStage;
 	uint8_t BootTimeout;
 	uint8_t SecondsToStart;
-} console;
-
+};
 
 enum CS_STASTUS{
 	CONFIRMED = 0b00,
@@ -94,6 +93,8 @@ enum CS_STASTUS{
 	BAD = 0b10,
 	RESERVED = 0b11
 };
+
+
 
 struct Si2c{
 	union{
@@ -112,6 +113,10 @@ struct Si2c{
 	};
 	uint8_t address;
 	uint8_t registers[3];
-}hi2c;
+};
+
+extern struct SSysCntrl SysCntrl;
+extern struct SConsole console;
+extern struct Si2c hi2c;
 
 #endif /* SRC_STRUCTS_H_ */

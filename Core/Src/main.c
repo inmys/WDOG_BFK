@@ -64,6 +64,9 @@ SPI_HandleTypeDef hspi1;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 extern const char* SWT[];
+struct SSysCntrl SysCntrl;
+struct SConsole console;
+struct Si2c hi2c;
 I2C_handler si2c1;
 /* USER CODE END PV */
 

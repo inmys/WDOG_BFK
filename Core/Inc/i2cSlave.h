@@ -9,7 +9,7 @@
 typedef unsigned char uint8_t ;
 #ifndef INC_I2CSLAVE_H_
 #define INC_I2CSLAVE_H_
-#include "Structs.h"
+#include <structs.h>
 
 void i2cSM();
 
